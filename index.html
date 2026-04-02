@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Kana Trainer v1.7</title>
+<title>Kana Trainer v1.8</title>
 <style>
     :root {
         --bg-1: #0d0d0d;
@@ -762,7 +762,7 @@
             <div>
                 <div class="section-title">Options</div>
                 <div id="optionButtons" class="button-grid"></div>
-                <div class="version-tag">v1.7</div>
+                <div class="version-tag">v1.8</div>
             </div>
 
             <div>
@@ -855,13 +855,13 @@ const dakutenRows = {
 
 const DEFAULT_SETTINGS = {
     focusWeak: false,
-    onlyMistakes: false,
     dakuten: false,
     hint: false,
     srs: true,
     mobileMode: false,
     endless: false,
     timeTrial: false,
+    comboKana: false,
     hiraganaRows: Object.keys(hiraganaRows),
     katakanaRows: [],
     statsVisible: true,
@@ -1111,8 +1111,8 @@ function buildModifierButtons() {
         ["hint", "Hint Mode"],
         ["endless", "Endless Mode"],
         ["timeTrial", "Time Trial Mode"],
+        ["comboKana", "Combo Kana Mode"],
         ["focusWeak", "Focus Weak"],
-        ["onlyMistakes", "Only Mistakes"],
         ["dakuten", "Dakuten"]
     ];
 
@@ -1253,11 +1253,6 @@ function getEligiblePool() {
     let pool = [...activeChars];
     if (pool.length === 0) return [];
 
-    if (settings.onlyMistakes) {
-        const mistakePool = pool.filter(ch => getStats(ch).wrong > getStats(ch).correct);
-        if (mistakePool.length > 0) pool = mistakePool;
-    }
-
     if (settings.srs) {
         const now = Date.now();
         const duePool = pool.filter(ch => getSrs(ch).due <= now);
@@ -1306,11 +1301,11 @@ function scheduleHint() {
     clearHint();
     if (!settings.hint || !currentChar || !sessionStarted) return;
 
-    const avg = getAverageTime(currentChar);
+    const avg = currentChar.split("").reduce((sum, ch) => sum + getAverageTime(ch), 0) / Math.max(1, currentChar.length);
     const delay = Math.max(600, Math.round(avg * 1.2));
 
     hintTimeout = setTimeout(() => {
-        const answer = charMap[currentChar];
+        const answer = getAnswerForCurrentChar();
         if (!answer || locked || !sessionStarted) return;
         hintEl.textContent = answer[0] + "_".repeat(Math.max(0, answer.length - 1));
     }, delay);
@@ -1342,9 +1337,20 @@ function nextCharacter() {
     ensureDataObjects();
 
     const pool = getEligiblePool();
-    const picked = weightedPick(pool) || activeChars[0] || "あ";
+    const firstPick = weightedPick(pool) || activeChars[0] || "あ";
+    let displayValue = firstPick;
 
-    currentChar = picked;
+    if (settings.comboKana && activeChars.length > 1) {
+        let secondPick = weightedPick(pool) || activeChars[1] || firstPick;
+        let safety = 0;
+        while (secondPick === firstPick && safety < 10 && activeChars.length > 1) {
+            secondPick = weightedPick(pool) || activeChars[1] || firstPick;
+            safety += 1;
+        }
+        displayValue = `${firstPick}${secondPick}`;
+    }
+
+    currentChar = displayValue;
     hiraganaEl.textContent = currentChar;
     hiraganaEl.classList.remove("flash-correct", "flash-wrong");
     charStartTime = Date.now();
@@ -1462,6 +1468,10 @@ function currentFlowModeIsContinuous() {
     return settings.endless || settings.timeTrial;
 }
 
+function getAnswerForCurrentChar() {
+    return currentChar.split("").map(ch => charMap[ch] || "").join("");
+}
+
 function handleCorrect() {
     const timeTaken = Date.now() - charStartTime;
 
@@ -1489,7 +1499,7 @@ function handleCorrect() {
 
 function handleWrong() {
     const timeTaken = Date.now() - charStartTime;
-    const correctAnswer = charMap[currentChar];
+    const correctAnswer = getAnswerForCurrentChar();
 
     stats[currentChar].wrong += 1;
     updateAverageTime(currentChar, timeTaken);
@@ -1532,7 +1542,7 @@ inputEl.addEventListener("input", () => {
     const valid = validRomajiSet();
     if (!valid.has(value)) return;
 
-    if (value === charMap[currentChar]) handleCorrect();
+    if (value === getAnswerForCurrentChar()) handleCorrect();
     else handleWrong();
 });
 
@@ -1718,7 +1728,7 @@ sessionModalBackdrop.addEventListener("click", (e) => {
 
 function makeExportPayload() {
     return {
-        version: "1.7",
+        version: "1.8",
         exportedAt: new Date().toISOString(),
         settings,
         stats,
