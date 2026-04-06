@@ -1205,6 +1205,9 @@ let dailyIndex = 0;
 let dailyCorrect = 0;
 let dailyWrong = 0;
 let dailyStartTime = 0;
+let currentBaseChar = "";
+let recentBaseCharHistory = [];
+let pendingImmediateRepeatChar = null;
 
 const titleEl = document.querySelector("h1");
 const sublineEl = document.querySelector(".subline");
@@ -1697,14 +1700,53 @@ function getEligiblePool() {
     return pool;
 }
 
-function weightedPick(pool) {
+function getRecentRepeatCount(char, history = recentBaseCharHistory) {
+    let count = 0;
+    for (let i = history.length - 1; i >= 0; i--) {
+        if (history[i] !== char) break;
+        count += 1;
+    }
+    return count;
+}
+
+function getRepeatSafePool(pool, options = {}) {
+    const { allowImmediateRepeatChar = null, history = recentBaseCharHistory } = options;
+    if (pool.length <= 1) return [...pool];
+
+    const lastChar = history[history.length - 1] || null;
+    const repeatFiltered = pool.filter(ch => getRecentRepeatCount(ch, history) < 2);
+    let filtered = repeatFiltered.length ? repeatFiltered : [...pool];
+
+    if (lastChar && filtered.length > 1 && allowImmediateRepeatChar !== lastChar) {
+        const nonImmediate = filtered.filter(ch => ch !== lastChar);
+        if (nonImmediate.length) filtered = nonImmediate;
+    }
+
+    return filtered;
+}
+
+function pickRandomChar(pool) {
+    if (!pool.length) return null;
+    return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function recordShownBaseChar(char) {
+    if (!char) return;
+    recentBaseCharHistory.push(char);
+    if (recentBaseCharHistory.length > 6) recentBaseCharHistory.shift();
+}
+
+function weightedPick(pool, options = {}) {
+    const { allowImmediateRepeatChar = null, history = recentBaseCharHistory } = options;
     if (pool.length === 0) return null;
-    if (pool.length === 1) return pool[0];
+
+    const candidates = getRepeatSafePool(pool, { allowImmediateRepeatChar, history });
+    if (candidates.length === 1) return candidates[0];
 
     const now = Date.now();
     const weighted = [];
 
-    for (const ch of pool) {
+    for (const ch of candidates) {
         const st = getStats(ch);
         const sr = getSrs(ch);
         let weight = 1;
@@ -1715,9 +1757,15 @@ function weightedPick(pool) {
 
         if (settings.srs) {
             const overdueMs = Math.max(0, now - sr.due);
+            const unseenMs = sr.lastSeen ? Math.max(0, now - sr.lastSeen) : 120000;
             weight += Math.min(12, Math.floor(overdueMs / 5000));
+            weight += Math.min(8, Math.floor(unseenMs / 15000));
             weight += Math.max(0, 4 - sr.level);
             if (sr.lastWrong && now - sr.lastWrong < 30000) weight += 5;
+        }
+
+        if (allowImmediateRepeatChar && ch === allowImmediateRepeatChar) {
+            weight += 6;
         }
 
         weight = Math.max(1, weight);
@@ -1782,14 +1830,18 @@ function buildComboCharacters(pool, firstPick) {
         if (sameRowPool.length === 0) sameRowPool = [firstPick];
 
         while (chars.length < comboLength) {
-            const nextPick = sameRowPool[Math.floor(Math.random() * sameRowPool.length)] || firstPick;
+            let comboPool = sameRowPool.filter(ch => !chars.includes(ch));
+            if (!comboPool.length) comboPool = [...sameRowPool];
+            const nextPick = pickRandomChar(comboPool) || firstPick;
             chars.push(nextPick);
         }
         return chars;
     }
 
     while (chars.length < comboLength) {
-        chars.push(weightedPick(pool) || firstPick);
+        let comboPool = pool.filter(ch => !chars.includes(ch));
+        if (!comboPool.length) comboPool = [...pool];
+        chars.push(weightedPick(comboPool) || firstPick);
     }
 
     return chars;
@@ -1809,6 +1861,7 @@ function updateSrsCorrect(char) {
     const delay = intervals[entry.level] ?? 1200000;
     entry.due = Date.now() + delay;
     entry.lastSeen = Date.now();
+    entry.lastWrong = 0;
     srs[char] = entry;
 }
 
@@ -1851,6 +1904,8 @@ function showIdleState() {
     currentChar = "";
     currentPrompt = "";
     currentChoices = [];
+    currentBaseChar = "";
+    pendingImmediateRepeatChar = null;
     promptEl.textContent = "—";
     promptEl.classList.remove("flash-correct", "flash-wrong", "prompt-small");
     choiceGridEl.innerHTML = "";
@@ -1971,6 +2026,9 @@ function nextCharacter() {
         }
 
         currentChar = dailySequence[dailyIndex] || "あ";
+        currentBaseChar = currentChar[0] || "";
+        recordShownBaseChar(currentBaseChar);
+        pendingImmediateRepeatChar = null;
         currentPrompt = getRomajiForChars(currentChar);
         currentChoices = settings.keyboardMode ? [] : buildChoiceOptionStrings(currentChar);
         showCurrentPrompt();
@@ -1990,7 +2048,7 @@ function nextCharacter() {
     ensureDataObjects();
 
     const pool = getEligiblePool();
-    const firstPick = weightedPick(pool) || activeChars[0] || "あ";
+    const firstPick = weightedPick(pool, { allowImmediateRepeatChar: pendingImmediateRepeatChar }) || activeChars[0] || "あ";
     let displayValue = firstPick;
 
     if (settings.comboKana && activeChars.length > 0) {
@@ -1998,6 +2056,9 @@ function nextCharacter() {
     }
 
     currentChar = displayValue;
+    currentBaseChar = firstPick;
+    recordShownBaseChar(currentBaseChar);
+    pendingImmediateRepeatChar = null;
     currentPrompt = getRomajiForChars(currentChar);
     currentChoices = settings.keyboardMode ? [] : buildChoiceOptionStrings(currentChar);
     showCurrentPrompt();
@@ -2062,6 +2123,7 @@ function handleCorrect() {
         endlessRunTotal += 1;
     }
 
+    pendingImmediateRepeatChar = null;
     updateTopStats();
     renderHeatmap();
     renderScoreHistory();
@@ -2099,6 +2161,7 @@ function handleWrong() {
         endlessRunWrong += 1;
     }
 
+    pendingImmediateRepeatChar = currentFlowModeIsContinuous() && currentChar.length === 1 ? currentBaseChar : null;
     streak = 0;
     lastComboLength = getComboLength();
     hideComboTierNotice();
@@ -2193,6 +2256,9 @@ function startSession() {
     streak = 0;
     endlessRunTotal = 0;
     endlessRunWrong = 0;
+    recentBaseCharHistory = [];
+    pendingImmediateRepeatChar = null;
+    currentBaseChar = "";
     lastComboLength = getComboLength();
     hideComboTierNotice();
 
@@ -2371,6 +2437,8 @@ function endDailyChallenge() {
     currentChar = "";
     currentPrompt = "";
     currentChoices = [];
+    currentBaseChar = "";
+    pendingImmediateRepeatChar = null;
     promptEl.textContent = "—";
 
     if (!existing) {
@@ -2424,6 +2492,8 @@ function endSession(autoEnded = false) {
     currentChar = "";
     currentPrompt = "";
     currentChoices = [];
+    currentBaseChar = "";
+    pendingImmediateRepeatChar = null;
 
     showSessionModal(autoEnded);
     updateTopStats();
