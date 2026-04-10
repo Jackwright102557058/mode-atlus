@@ -1154,6 +1154,8 @@ let charStartTime = 0;
 let locked = false;
 let sessionStarted = false;
 let sessionStats = createEmptySessionStats();
+let debugActiveChar = null;
+let DEBUG_PANEL = null;
 
 let endlessRunTotal = 0;
 let endlessRunWrong = 0;
@@ -1503,6 +1505,7 @@ function endDailyChallenge() {
     buildRows("katakanaRowOptions", katakanaRows, "katakanaRows", "k_");
     updateTrialConfigVisibility();
     updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
     renderScoreHistory();
     applyDailyChallengeTheme();
     saveAll();
@@ -1661,6 +1664,7 @@ function buildModifierButtons() {
             }
             updateTrialConfigVisibility();
             updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
             onSettingsChanged();
         }, lockedModes);
         container.appendChild(btn);
@@ -1724,8 +1728,15 @@ function renderHeatmap() {
         cell.textContent = ch;
         cell.style.background = heatmapColor(ch);
 
+        cell.onmouseenter = () => {
+            debugActiveChar = ch;
+            if (DEBUG_PANEL) renderDebugPanel();
+        };
+
         cell.onclick = (e) => {
             e.stopPropagation();
+            debugActiveChar = ch;
+            if (DEBUG_PANEL) renderDebugPanel();
             const st = getStats(ch);
             const tm = getAverageTime(ch);
             const sr = getSrs(ch);
@@ -1771,6 +1782,7 @@ function onSettingsChanged() {
     updateTrialConfigVisibility();
     renderHeatmap();
     updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
     renderScoreHistory();
     saveAll();
 
@@ -1788,6 +1800,116 @@ function getEligiblePool() {
     }
 
     return pool;
+}
+
+function getSrsWeightBreakdown(char) {
+    const st = getStats(char);
+    const sr = getSrs(char);
+    const now = Date.now();
+    const avgTime = getAverageTime(char);
+    const unseenMs = sr.lastSeen ? Math.max(0, now - sr.lastSeen) : 60000;
+    const slowMs = Math.max(0, avgTime - 1200);
+    const parts = {
+        base: 1,
+        focusWeak: settings.focusWeak ? Math.max(0, st.wrong * 2 - st.correct) : 0,
+        overdue: 0,
+        lowLevel: 0,
+        unseen: 0,
+        firstSeenBonus: 0,
+        recentWrong: 0,
+        slow: 0
+    };
+
+    if (settings.srs) {
+        const overdueMs = Math.max(0, now - sr.due);
+        parts.overdue = Math.min(12, Math.floor(overdueMs / 5000));
+        parts.lowLevel = Math.max(0, 4 - sr.level);
+        parts.unseen = Math.min(6, Math.floor(unseenMs / 15000));
+        parts.firstSeenBonus = sr.lastSeen ? 0 : 2;
+        parts.recentWrong = (sr.lastWrong && now - sr.lastWrong < 30000) ? 5 : 0;
+        parts.slow = Math.min(4, Math.floor(slowMs / 600));
+    }
+
+    const total = Math.max(1, Object.values(parts).reduce((sum, value) => sum + value, 0));
+    return {
+        char,
+        romaji: charMap[char] || '—',
+        stats: st,
+        srs: sr,
+        avgTime,
+        parts,
+        total,
+        dueInMs: sr.due ? (sr.due - now) : 0,
+        lastSeenAgoMs: sr.lastSeen ? (now - sr.lastSeen) : null,
+        lastWrongAgoMs: sr.lastWrong ? (now - sr.lastWrong) : null
+    };
+}
+
+function getDebugActiveChar() {
+    return debugActiveChar || currentChar || activeChars[0] || null;
+}
+
+function closeDebugPanel() {
+    const panel = document.getElementById('srsDebugPanel');
+    if (panel) panel.remove();
+    DEBUG_PANEL = null;
+}
+
+function renderDebugPanel() {
+    const activeChar = getDebugActiveChar();
+    if (!activeChar) return null;
+    const info = getSrsWeightBreakdown(activeChar);
+
+    if (!DEBUG_PANEL || !document.body.contains(DEBUG_PANEL)) {
+        DEBUG_PANEL = document.createElement('div');
+        DEBUG_PANEL.id = 'srsDebugPanel';
+        Object.assign(DEBUG_PANEL.style, {
+            position: 'fixed', right: '16px', bottom: '16px', zIndex: '9999',
+            width: 'min(380px, calc(100vw - 32px))', maxHeight: '70vh', overflow: 'auto',
+            padding: '14px', borderRadius: '16px', background: 'rgba(12,12,12,0.97)',
+            border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 16px 40px rgba(0,0,0,0.45)',
+            fontFamily: 'Arial, sans-serif', fontSize: '12px', lineHeight: '1.45', color: '#f3f3f3'
+        });
+        document.body.appendChild(DEBUG_PANEL);
+    }
+
+    DEBUG_PANEL.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;">
+            <div style="font-size:13px;font-weight:800;letter-spacing:0.04em;">SRS Debug</div>
+            <button type="button" id="closeSrsDebugBtn" style="border:1px solid rgba(255,255,255,0.14);background:#1f1f1f;color:#f3f3f3;border-radius:8px;padding:4px 9px;cursor:pointer;font-size:12px;">✕</button>
+        </div>
+        <div style="display:grid;gap:8px;">
+            <div><strong>Active kana:</strong> ${info.char} <span style="color:#bfbfbf;">(${info.romaji})</span></div>
+            <div><strong>Current shown:</strong> <span style="color:#bfbfbf;">${currentChar || '—'}</span></div>
+            <div><strong>Session state:</strong> <span style="color:#bfbfbf;">started=${sessionStarted} · locked=${locked} · activeChars=${activeChars.length}</span></div>
+            <div><strong>Settings:</strong> <span style="color:#bfbfbf;">focusWeak=${settings.focusWeak} · srs=${settings.srs} · dakuten=${settings.dakuten}</span></div>
+            <div style="padding:10px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                <div style="font-weight:800;margin-bottom:6px;">Weight breakdown</div>
+                ${Object.entries(info.parts).map(([k,v]) => `<div style="display:flex;justify-content:space-between;gap:8px;"><span>${k}</span><strong>${v}</strong></div>`).join('')}
+                <div style="display:flex;justify-content:space-between;gap:8px;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);"><span>finalWeight</span><strong>${info.total}</strong></div>
+            </div>
+            <div style="padding:10px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                <div style="font-weight:800;margin-bottom:6px;">Kana save data</div>
+                <div>correct: <strong>${info.stats.correct}</strong></div>
+                <div>wrong: <strong>${info.stats.wrong}</strong></div>
+                <div>avgTime: <strong>${formatDuration(info.avgTime)}</strong></div>
+                <div>srs.level: <strong>${info.srs.level}</strong></div>
+                <div>due in: <strong>${info.dueInMs > 0 ? formatDuration(info.dueInMs) : 'due now'}</strong></div>
+                <div>lastSeen ago: <strong>${info.lastSeenAgoMs === null ? 'never' : formatDuration(info.lastSeenAgoMs)}</strong></div>
+                <div>lastWrong ago: <strong>${info.lastWrongAgoMs === null ? 'never' : formatDuration(info.lastWrongAgoMs)}</strong></div>
+            </div>
+            <div style="padding:10px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                <div style="font-weight:800;margin-bottom:6px;">Save snapshot</div>
+                <div>stats keys: <strong>${Object.keys(stats).length}</strong></div>
+                <div>times keys: <strong>${Object.keys(times).length}</strong></div>
+                <div>srs keys: <strong>${Object.keys(srs).length}</strong></div>
+                <div>highScore: <strong>${highScore}</strong></div>
+            </div>
+        </div>
+    `;
+    const closeBtn = document.getElementById('closeSrsDebugBtn');
+    if (closeBtn) closeBtn.onclick = closeDebugPanel;
+    return DEBUG_PANEL;
 }
 
 function weightedPick(pool) {
@@ -1948,6 +2070,7 @@ function nextCharacter() {
         inputEl.disabled = false;
         inputEl.focus();
         updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
         return;
     }
 
@@ -1967,6 +2090,7 @@ function nextCharacter() {
         inputEl.disabled = false;
         inputEl.focus();
         updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
         return;
     }
 
@@ -2048,6 +2172,7 @@ function startSession() {
     }
 
     updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
 
     gameOverEl.style.display = "none";
     gameOverTitleEl.textContent = "Wrong";
@@ -2177,6 +2302,7 @@ function handleCorrect() {
     } else if (currentFlowModeIsContinuous()) endlessRunTotal += 1;
 
     updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
     renderHeatmap();
     renderScoreHistory();
     saveAll();
@@ -2221,6 +2347,7 @@ function handleWrong() {
     lastComboLength = getComboLength();
     hideComboTierNotice();
     updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
     renderHeatmap();
     saveAll();
 
@@ -2426,6 +2553,7 @@ function endTestMode() {
     sessionModalBackdrop.classList.add("open");
 
     updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
     renderScoreHistory();
     saveAll();
     onSettingsChanged();
@@ -2580,6 +2708,7 @@ function endSession(autoEnded = false) {
         hiraganaEl.textContent = "—";
         currentChar = "";
         updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
         onSettingsChanged();
         return;
     }
@@ -2599,6 +2728,7 @@ function endSession(autoEnded = false) {
 
     showSessionModal(autoEnded);
     updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
     onSettingsChanged();
 }
 
@@ -2735,6 +2865,7 @@ function applyImportedData(payload) {
     applyPanelStates();
     updateTrialConfigVisibility();
     updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
     renderHeatmap();
     renderScoreHistory();
     showIdleState();
@@ -2793,6 +2924,7 @@ resetBtn.addEventListener("click", () => {
     rebuildCharMap();
     ensureDataObjects();
     updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
     renderHeatmap();
     renderScoreHistory();
     saveAll();
@@ -2835,6 +2967,7 @@ function init() {
     applyPanelStates();
     updateTrialConfigVisibility();
     updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
     renderHeatmap();
     renderScoreHistory();
     showIdleState();

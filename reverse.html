@@ -1336,6 +1336,8 @@ const heatmapEl = document.getElementById("heatmap");
 const popupEl = document.getElementById("popup");
 let popupLocked = false;
 let hoveredCell = null;
+let debugActiveChar = null;
+let DEBUG_PANEL = null;
 const modifiersTabEl = document.getElementById("modifiersTab");
 const optionsTabEl = document.getElementById("optionsTab");
 const modifiersContentEl = document.getElementById("modifiersContent");
@@ -1811,6 +1813,7 @@ function buildModifierButtons() {
             }
             updateTrialConfigVisibility();
             updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
             onSettingsChanged();
         }, lockedModes);
         container.appendChild(btn);
@@ -1866,6 +1869,8 @@ function heatmapColor(char) {
 }
 
 function showPopupForChar(ch, e) {
+    debugActiveChar = ch;
+    if (DEBUG_PANEL) renderDebugPanel();
     const st = getStats(ch);
     const tm = getAverageTime(ch);
     const sr = getSrs(ch);
@@ -1986,6 +1991,121 @@ function recordShownBaseChar(char) {
     if (!char) return;
     recentBaseCharHistory.push(char);
     if (recentBaseCharHistory.length > 6) recentBaseCharHistory.shift();
+}
+
+function getSrsWeightBreakdown(char, options = {}) {
+    const { allowImmediateRepeatChar = null } = options;
+    const st = getStats(char);
+    const sr = getSrs(char);
+    const now = Date.now();
+    const avgTime = getAverageTime(char);
+    const parts = {
+        base: 1,
+        focusWeak: settings.focusWeak ? Math.max(0, st.wrong * 2 - st.correct) : 0,
+        overdue: 0,
+        unseen: 0,
+        lowLevel: 0,
+        slow: 0,
+        recentWrong: 0,
+        forcedRepeat: 0
+    };
+
+    if (settings.srs) {
+        const overdueMs = Math.max(0, now - sr.due);
+        const unseenMs = sr.lastSeen ? Math.max(0, now - sr.lastSeen) : 120000;
+        parts.overdue = Math.min(12, Math.floor(overdueMs / 5000));
+        parts.unseen = Math.min(8, Math.floor(unseenMs / 15000));
+        parts.lowLevel = Math.max(0, 4 - sr.level);
+        parts.slow = Math.min(4, Math.max(0, Math.floor((avgTime - 1200) / 600)));
+        parts.recentWrong = (sr.lastWrong && now - sr.lastWrong < 30000) ? 5 : 0;
+    }
+
+    if (allowImmediateRepeatChar && char === allowImmediateRepeatChar) {
+        parts.forcedRepeat = 6;
+    }
+
+    const total = Math.max(1, Object.values(parts).reduce((sum, value) => sum + value, 0));
+    return {
+        char,
+        romaji: getAnswerMapForCurrentMode()[char] || charMap[char] || '—',
+        stats: st,
+        srs: sr,
+        avgTime,
+        parts,
+        total,
+        dueInMs: sr.due ? (sr.due - now) : 0,
+        lastSeenAgoMs: sr.lastSeen ? (now - sr.lastSeen) : null,
+        lastWrongAgoMs: sr.lastWrong ? (now - sr.lastWrong) : null
+    };
+}
+
+function getDebugActiveChar() {
+    return debugActiveChar || currentBaseChar || currentChar || activeChars[0] || null;
+}
+
+function closeDebugPanel() {
+    const panel = document.getElementById('srsDebugPanel');
+    if (panel) panel.remove();
+    DEBUG_PANEL = null;
+}
+
+function renderDebugPanel() {
+    const activeChar = getDebugActiveChar();
+    if (!activeChar) return null;
+
+    const info = getSrsWeightBreakdown(activeChar, { allowImmediateRepeatChar: pendingImmediateRepeatChar });
+
+    if (!DEBUG_PANEL || !document.body.contains(DEBUG_PANEL)) {
+        DEBUG_PANEL = document.createElement('div');
+        DEBUG_PANEL.id = 'srsDebugPanel';
+        Object.assign(DEBUG_PANEL.style, {
+            position: 'fixed', right: '16px', bottom: '16px', zIndex: '9999',
+            width: 'min(380px, calc(100vw - 32px))', maxHeight: '70vh', overflow: 'auto',
+            padding: '14px', borderRadius: '16px', background: 'rgba(12,12,12,0.97)',
+            border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 16px 40px rgba(0,0,0,0.45)',
+            fontFamily: 'Arial, sans-serif', fontSize: '12px', lineHeight: '1.45', color: '#f3f3f3'
+        });
+        document.body.appendChild(DEBUG_PANEL);
+    }
+
+    DEBUG_PANEL.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;">
+            <div style="font-size:13px;font-weight:800;letter-spacing:0.04em;">SRS Debug</div>
+            <button type="button" id="closeSrsDebugBtn" style="border:1px solid rgba(255,255,255,0.14);background:#1f1f1f;color:#f3f3f3;border-radius:8px;padding:4px 9px;cursor:pointer;font-size:12px;">✕</button>
+        </div>
+        <div style="display:grid;gap:8px;">
+            <div><strong>Active kana:</strong> ${info.char} <span style="color:#bfbfbf;">(${info.romaji})</span></div>
+            <div><strong>Current prompt:</strong> <span style="color:#bfbfbf;">${currentPrompt || '—'}</span></div>
+            <div><strong>Session state:</strong> <span style="color:#bfbfbf;">started=${sessionStarted} · locked=${locked} · activeChars=${activeChars.length}</span></div>
+            <div><strong>Settings:</strong> <span style="color:#bfbfbf;">focusWeak=${settings.focusWeak} · srs=${settings.srs} · dakuten=${settings.dakuten} · mode=${settings.keyboardMode ? 'keyboard' : 'buttons'}</span></div>
+            <div style="padding:10px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                <div style="font-weight:800;margin-bottom:6px;">Weight breakdown</div>
+                ${Object.entries(info.parts).map(([k,v]) => `<div style="display:flex;justify-content:space-between;gap:8px;"><span>${k}</span><strong>${v}</strong></div>`).join('')}
+                <div style="display:flex;justify-content:space-between;gap:8px;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);"><span>finalWeight</span><strong>${info.total}</strong></div>
+            </div>
+            <div style="padding:10px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                <div style="font-weight:800;margin-bottom:6px;">Kana save data</div>
+                <div>correct: <strong>${info.stats.correct}</strong></div>
+                <div>wrong: <strong>${info.stats.wrong}</strong></div>
+                <div>avgTime: <strong>${formatDuration(info.avgTime)}</strong></div>
+                <div>srs.level: <strong>${info.srs.level}</strong></div>
+                <div>due in: <strong>${info.dueInMs > 0 ? formatDuration(info.dueInMs) : 'due now'}</strong></div>
+                <div>lastSeen ago: <strong>${info.lastSeenAgoMs === null ? 'never' : formatDuration(info.lastSeenAgoMs)}</strong></div>
+                <div>lastWrong ago: <strong>${info.lastWrongAgoMs === null ? 'never' : formatDuration(info.lastWrongAgoMs)}</strong></div>
+            </div>
+            <div style="padding:10px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                <div style="font-weight:800;margin-bottom:6px;">Save snapshot</div>
+                <div>stats keys: <strong>${Object.keys(stats).length}</strong></div>
+                <div>times keys: <strong>${Object.keys(times).length}</strong></div>
+                <div>srs keys: <strong>${Object.keys(srs).length}</strong></div>
+                <div>highScore: <strong>${highScore}</strong></div>
+                <div>scoreHistory entries: <strong>${(scoreHistory.timeTrialTop3 || []).length}</strong></div>
+            </div>
+        </div>
+    `;
+    const closeBtn = document.getElementById('closeSrsDebugBtn');
+    if (closeBtn) closeBtn.onclick = closeDebugPanel;
+    return DEBUG_PANEL;
 }
 
 function weightedPick(pool, options = {}) {
@@ -2316,6 +2436,7 @@ function nextCharacter() {
         inputEl.disabled = false;
         if (settings.keyboardMode) inputEl.focus();
         updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
         scheduleHint();
         return;
     }
@@ -2341,6 +2462,7 @@ function nextCharacter() {
         inputEl.disabled = false;
         if (settings.keyboardMode) inputEl.focus();
         updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
         scheduleHint();
         return;
     }
@@ -2441,6 +2563,7 @@ function handleCorrect() {
 
     pendingImmediateRepeatChar = null;
     updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
     renderHeatmap();
     renderScoreHistory();
     saveAll();
@@ -2490,6 +2613,7 @@ function handleWrong() {
     lastComboLength = getComboLength();
     hideComboTierNotice();
     updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
     renderHeatmap();
     saveAll();
 
@@ -2617,6 +2741,7 @@ function startSession() {
     }
 
     updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
 
     gameOverEl.style.display = "none";
     gameOverTitleEl.textContent = "Wrong";
@@ -2777,6 +2902,7 @@ function endTestMode() {
     sessionModalBackdrop.classList.add("open");
 
     updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
     renderScoreHistory();
     saveAll();
     onSettingsChanged();
@@ -2956,6 +3082,7 @@ function endDailyChallenge() {
     buildRows("katakanaRowOptions", katakanaRows, "katakanaRows", "k_");
     updateTrialConfigVisibility();
     updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
     renderScoreHistory();
     applyDailyChallengeTheme();
     saveAll();
@@ -2995,6 +3122,7 @@ function endSession(autoEnded = false) {
 
     showSessionModal(autoEnded);
     updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
     onSettingsChanged();
 }
 
@@ -3009,6 +3137,7 @@ function onSettingsChanged() {
     updateTrialConfigVisibility();
     renderHeatmap();
     updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
     renderScoreHistory();
     saveAll();
 
@@ -3126,6 +3255,7 @@ function applyImportedData(payload) {
     applyPanelStates();
     updateTrialConfigVisibility();
     updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
     renderHeatmap();
     renderScoreHistory();
     showIdleState();
@@ -3257,6 +3387,7 @@ resetBtn.addEventListener("click", () => {
     rebuildCharMap();
     ensureDataObjects();
     updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
     renderHeatmap();
     renderScoreHistory();
     saveAll();
@@ -3313,6 +3444,7 @@ function init() {
     applyPanelStates();
     updateTrialConfigVisibility();
     updateTopStats();
+    if (DEBUG_PANEL) renderDebugPanel();
     renderHeatmap();
     renderScoreHistory();
     showIdleState();
