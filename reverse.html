@@ -1498,8 +1498,32 @@ function getRomajiForChars(chars) {
     return chars.split("").map(ch => sourceMap[ch] || "").join("");
 }
 
+function isHiraganaChar(char) {
+    return /^[぀-ゟ]$/.test(char);
+}
+
+function isKatakanaChar(char) {
+    return /^[゠-ヿ]$/.test(char);
+}
+
+function getChoicePoolForCurrentChar(correctAnswer) {
+    const sourceMap = getAnswerMapForCurrentMode();
+    let pool = Object.keys(sourceMap);
+
+    if (isTestModeSession() && correctAnswer && correctAnswer.length === 1) {
+        if (isHiraganaChar(correctAnswer)) {
+            pool = pool.filter(ch => isHiraganaChar(ch));
+        } else if (isKatakanaChar(correctAnswer)) {
+            pool = pool.filter(ch => isKatakanaChar(ch));
+        }
+    }
+
+    return pool;
+}
+
 function getAcceptedAnswersForCurrentChar() {
     if (!currentChar) return [];
+    if (isTestModeSession()) return [currentChar];
 
     const sourceMap = getAnswerMapForCurrentMode();
     const candidatesByRomaji = new Map();
@@ -1688,20 +1712,23 @@ function applyPanelStates() {
 
     document.body.classList.toggle("mobile-mode", !!settings.mobileMode);
 
-    keyboardWrapEl.style.display = settings.keyboardMode ? "block" : "none";
-    choiceGridEl.style.display = settings.keyboardMode ? "none" : "grid";
+    const testModeForcesSixChoices = isTestModeSession();
+    const effectiveKeyboardMode = settings.keyboardMode;
 
-    buttonsModeBtn.classList.toggle("btn-secondary", !settings.keyboardMode);
-    keyboardModeBtn.classList.toggle("btn-secondary", settings.keyboardMode);
+    keyboardWrapEl.style.display = effectiveKeyboardMode ? "block" : "none";
+    choiceGridEl.style.display = effectiveKeyboardMode ? "none" : "grid";
+
+    buttonsModeBtn.classList.toggle("btn-secondary", !effectiveKeyboardMode);
+    keyboardModeBtn.classList.toggle("btn-secondary", effectiveKeyboardMode);
     buttonsModeBtn.disabled = sessionStarted;
     keyboardModeBtn.disabled = sessionStarted;
 
-    choice4Btn.classList.toggle("btn-secondary", settings.choiceCount === 4);
-    choice6Btn.classList.toggle("btn-secondary", settings.choiceCount === 6);
-    choice8Btn.classList.toggle("btn-secondary", settings.choiceCount === 8);
-    choice4Btn.disabled = sessionStarted || settings.keyboardMode;
-    choice6Btn.disabled = sessionStarted || settings.keyboardMode;
-    choice8Btn.disabled = sessionStarted || settings.keyboardMode;
+    choice4Btn.classList.toggle("btn-secondary", settings.choiceCount === 4 && !testModeForcesSixChoices);
+    choice6Btn.classList.toggle("btn-secondary", settings.choiceCount === 6 || testModeForcesSixChoices);
+    choice8Btn.classList.toggle("btn-secondary", settings.choiceCount === 8 && !testModeForcesSixChoices);
+    choice4Btn.disabled = sessionStarted || effectiveKeyboardMode || testModeForcesSixChoices;
+    choice6Btn.disabled = sessionStarted || effectiveKeyboardMode || testModeForcesSixChoices;
+    choice8Btn.disabled = sessionStarted || effectiveKeyboardMode || testModeForcesSixChoices;
 }
 
 function setBottomTab(tabName) {
@@ -2158,14 +2185,15 @@ function shuffle(array) {
 }
 
 function buildChoiceOptionStrings(correctAnswer) {
-    const count = Math.max(2, Math.min(8, settings.choiceCount || 4));
+    const forcedChoiceCount = isTestModeSession() ? 6 : (settings.choiceCount || 4);
+    const count = Math.max(2, Math.min(8, forcedChoiceCount));
     if (!correctAnswer) return [];
 
     const acceptedAnswers = [...new Set(getAcceptedAnswersForCurrentChar())];
     const equivalentAnswers = acceptedAnswers.filter(answer => answer !== correctAnswer);
     const equivalentAnswerSet = new Set(equivalentAnswers);
     const answerLength = correctAnswer.length;
-    const pool = Object.keys(getAnswerMapForCurrentMode());
+    const pool = getChoicePoolForCurrentChar(correctAnswer);
     if (!pool.length) return [correctAnswer];
 
     if (answerLength === 1) {
