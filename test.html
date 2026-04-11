@@ -1116,6 +1116,96 @@
         gap: 10px;
     }
 
+
+
+    .heatmap {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .heatmap-row-group {
+        display: grid;
+        gap: 8px;
+    }
+
+    .heatmap-row-label {
+        font-size: 13px;
+        font-weight: 800;
+        color: #e5e5e5;
+        letter-spacing: 0.04em;
+    }
+
+    .heatmap-row-cells {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .cell.empty-slot {
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    .cell.reference {
+        background: rgba(255,255,255,0.08) !important;
+        border-color: rgba(255,255,255,0.10);
+        cursor: default;
+        box-shadow: none;
+    }
+
+    .cell.reference:hover,
+    .cell.reference.active {
+        transform: none;
+        border-color: rgba(255,255,255,0.10);
+        box-shadow: none;
+    }
+
+    .cell.reference .cell-char {
+        color: rgba(255,255,255,0.72);
+    }
+
+    .cell.reference .cell-time {
+        color: rgba(255,255,255,0.46);
+    }
+
+    .cell-badge {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        padding: 2px 6px;
+        border-radius: 999px;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        line-height: 1.2;
+    }
+
+    .cell-badge.fastest {
+        background: rgba(103,215,139,0.18);
+        color: #bdf3cf;
+        border: 1px solid rgba(103,215,139,0.34);
+    }
+
+    .cell-badge.slowest {
+        background: rgba(255,123,123,0.18);
+        color: #ffb3b3;
+        border: 1px solid rgba(255,123,123,0.34);
+    }
+
+    .row-doughnut-card.slowest {
+        border-color: rgba(203,163,74,0.72);
+        box-shadow: inset 0 0 0 2px rgba(203,163,74,0.18), 0 0 18px rgba(203,163,74,0.16);
+        background: linear-gradient(180deg, rgba(203,163,74,0.08), rgba(255,255,255,0.035));
+    }
+
+    .row-flag.slowest {
+        background: rgba(203,163,74,0.18);
+        color: #ffe2a6;
+        border: 1px solid rgba(203,163,74,0.34);
+    }
+
 </style>
 </head>
 <body>
@@ -1209,7 +1299,7 @@
                 <div class="card-head">
                     <div>
                         <h2 class="card-title">Selected result details</h2>
-                        <div class="card-sub">Click a result on the left, then inspect the full kana set from the heatmap on the right.</div>
+                        <div class="card-sub">Click a result on the left, then inspect the kana grouped by row with fastest and slowest markers.</div>
                     </div>
                     <div class="accent"></div>
                 </div>
@@ -1230,6 +1320,7 @@
                         <div class="legend">
                             <div class="legend-chip"><span class="legend-box" style="background: rgba(103,215,139,0.34);"></span> Correct</div>
                             <div class="legend-chip"><span class="legend-box" style="background: rgba(255,123,123,0.28);"></span> Wrong</div>
+                            <div class="legend-chip"><span class="legend-box" style="background: rgba(255,255,255,0.08);"></span> Dakuten not used</div>
                             <div class="legend-chip"><span class="legend-box" style="background: rgba(255,255,255,0.06);"></span> Not included</div>
                         </div>
                     </div>
@@ -1371,6 +1462,45 @@ function computeRowPerformance(result) {
 }
 
 
+function rowNeedsErrorStyling(row) {
+    return !!row && Number(row.wrong || 0) > 0;
+}
+
+function getRowBadgeType(row, bestRow, worstRow) {
+    if (bestRow && bestRow.key === row.key) return { className: "best", label: "Best" };
+    if (worstRow && worstRow.key === row.key) {
+        return rowNeedsErrorStyling(row)
+            ? { className: "worst", label: "Worst" }
+            : { className: "slowest", label: "Slowest" };
+    }
+    return null;
+}
+
+function getRowCellExtremes(result) {
+    const map = new Map();
+    ROW_GROUPS.forEach(row => {
+        const items = row.chars
+            .filter(ch => result.kana && result.kana[ch])
+            .map(ch => ({ char: ch, record: result.kana[ch] }))
+            .filter(item => Number.isFinite(Number(item.record?.avgMs)) && Number(item.record.avgMs) > 0);
+
+        if (!items.length) return;
+
+        let fastest = items[0];
+        let slowest = items[0];
+        items.forEach(item => {
+            if (Number(item.record.avgMs) < Number(fastest.record.avgMs)) fastest = item;
+            if (Number(item.record.avgMs) > Number(slowest.record.avgMs)) slowest = item;
+        });
+
+        const byChar = {};
+        if (fastest) byChar[fastest.char] = 'fastest';
+        if (slowest) byChar[slowest.char] = fastest && fastest.char === slowest.char ? 'fastest' : 'slowest';
+        map.set(`${row.script}:${row.key}`, byChar);
+    });
+    return map;
+}
+
 function renderRowPerformance(result) {
     const perf = computeRowPerformance(result);
     if (!perf.rows.length) return "";
@@ -1383,17 +1513,15 @@ function renderRowPerformance(result) {
             </div>
             <div class="row-doughnut-strip">
                 ${rows.map((row, index) => {
-                    const isBest = bestRow && bestRow.key === row.key;
-                    const isWorst = worstRow && worstRow.key === row.key;
+                    const badge = getRowBadgeType(row, bestRow, worstRow);
                     return `
                         <button
-                            class="row-doughnut-card ${isBest ? "best" : ""} ${isWorst ? "worst" : ""}"
+                            class="row-doughnut-card ${badge ? badge.className : ""}"
                             data-row-script="${row.script}"
                             data-row-key="${row.key}"
                             type="button"
                         >
-                            ${isBest ? '<span class="row-flag best">Best</span>' : ''}
-                            ${isWorst ? '<span class="row-flag worst">Worst</span>' : ''}
+                            ${badge ? `<span class="row-flag ${badge.className}">${badge.label}</span>` : ''}
                             <canvas id="chart-${prefix}-${index}" width="70" height="70"></canvas>
                             <div class="row-doughnut-label">${row.key}</div>
                             <div class="row-doughnut-value">${row.accuracy}%</div>
@@ -1424,6 +1552,7 @@ const ALL_BASE_KANA = [
 ];
 
 const ALL_DAKUTEN_KANA = Object.entries(DAKUTEN_ROWS).flatMap(([, row]) => Object.entries(row));
+const DAKUTEN_CHAR_SET = new Set(ALL_DAKUTEN_KANA.map(([char]) => char));
 
 const READING_TEST_RESULTS_STORAGE_KEY = "testModeResults";
 const READING_TEST_RESULTS_STORAGE_BACKUP_KEY = "kanaTrainerTestModeResults";
@@ -1439,30 +1568,21 @@ function formatDuration(ms) {
     if (!Number.isFinite(ms) || ms <= 0) return "—";
 
     if (ms < 1000) {
-        return `${Math.round(ms)} ms`;
+        return `${(ms / 1000).toFixed(2)}s`;
     }
 
-    const totalSeconds = Math.floor(ms / 1000);
-
-    if (totalSeconds < 60) {
-        return `${totalSeconds}s`;
+    const seconds = ms / 1000;
+    if (seconds < 60) {
+        return `${seconds.toFixed(2)}s`;
     }
 
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-
+    const minutes = seconds / 60;
     if (minutes < 60) {
-        return seconds > 0
-            ? `${minutes}m ${seconds}s`
-            : `${minutes}m`;
+        return `${minutes.toFixed(2)}m`;
     }
 
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-
-    return remainingMinutes > 0
-        ? `${hours}h ${remainingMinutes}m`
-        : `${hours}h`;
+    const hours = minutes / 60;
+    return `${hours.toFixed(2)}h`;
 }
     
 function loadJSON(key, fallback) {
@@ -2034,15 +2154,63 @@ function closeKanaModal() {
 }
 
 function renderHeatmap(result) {
-    const entries = Object.entries(result.kana || {});
-    TEST_HEATMAP.innerHTML = entries.map(([char, record]) => `
-        <button class="cell ${selectedKana === char ? "active" : ""}" data-kana="${char}" type="button" style="background:${getHeatColor(record)};">
-            <div class="cell-char">${char}</div>
-            <div class="cell-time">${formatDuration(record.avgMs)}</div>
-        </button>
-    `).join("");
+    const rowExtremes = getRowCellExtremes(result);
+    const visibleGroups = ROW_GROUPS
+        .map(row => {
+            const rowEntries = row.chars.map(char => [char, result.kana?.[char]]).filter(([, record]) => record);
+            return { ...row, rowEntries };
+        })
+        .filter(row => row.rowEntries.length);
 
-    TEST_HEATMAP.querySelectorAll(".cell").forEach(button => {
+    const buildCell = (char, record, markers) => {
+        if (!record) {
+            if (DAKUTEN_CHAR_SET.has(char)) {
+                return `
+                    <div class="cell reference" aria-label="${char} not used in this test">
+                        <div class="cell-char">${char}</div>
+                        <div class="cell-time">Off</div>
+                    </div>
+                `;
+            }
+            return `<div class="cell empty-slot" aria-hidden="true"></div>`;
+        }
+        const marker = markers[char];
+        const badge = marker
+            ? `<span class="cell-badge ${marker}">${marker === 'fastest' ? 'Fastest' : 'Slowest'}</span>`
+            : '';
+        return `
+            <button class="cell ${selectedKana === char ? "active" : ""}" data-kana="${char}" type="button" style="background:${getHeatColor(record)};">
+                ${badge}
+                <div class="cell-char">${char}</div>
+                <div class="cell-time">${formatDuration(record.avgMs)}</div>
+            </button>
+        `;
+    };
+
+    TEST_HEATMAP.innerHTML = visibleGroups.map(row => {
+        const markers = rowExtremes.get(`${row.script}:${row.key}`) || {};
+        const chunks = [];
+        for (let i = 0; i < row.chars.length; i += 5) {
+            const slice = row.chars.slice(i, i + 5);
+            while (slice.length < 5) slice.push(null);
+            chunks.push(slice);
+        }
+
+        const rowsHtml = chunks.map(chunk => `
+            <div class="heatmap-row-cells">
+                ${chunk.map(char => char ? buildCell(char, result.kana?.[char], markers) : `<div class="cell empty-slot" aria-hidden="true"></div>`).join("")}
+            </div>
+        `).join("");
+
+        return `
+            <div class="heatmap-row-group">
+                <div class="heatmap-row-label">${row.key} Row</div>
+                ${rowsHtml}
+            </div>
+        `;
+    }).join("");
+
+    TEST_HEATMAP.querySelectorAll(".cell[data-kana]").forEach(button => {
         button.addEventListener("click", () => {
             selectedKana = button.dataset.kana;
             renderHeatmap(result);
@@ -2207,7 +2375,9 @@ function drawRowCharts(result) {
             ctx.arc(cx, cy, radius, -Math.PI / 2, (-Math.PI / 2) + (Math.PI * 2) * (correct / 100));
             let stroke = correct >= 80 ? "#67d78b" : correct >= 60 ? "#cba34a" : "#ff7b7b";
             if (bestRow && bestRow.key === row.key) stroke = "#67d78b";
-            if (worstRow && worstRow.key === row.key) stroke = "#ff7b7b";
+            if (worstRow && worstRow.key === row.key) {
+                stroke = rowNeedsErrorStyling(row) ? "#ff7b7b" : "#cba34a";
+            }
             ctx.strokeStyle = stroke;
             ctx.lineWidth = lineWidth;
             ctx.lineCap = "round";
