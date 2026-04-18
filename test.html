@@ -1649,7 +1649,6 @@ function computeRowPerformance(result, groups = REGULAR_ROW_GROUPS, includeEmpty
         return {
             script: row.script,
             key: row.key,
-            displayKey: row.chars && row.chars.length ? row.chars[0] : row.key,
             correct,
             wrong,
             total,
@@ -1745,7 +1744,7 @@ function renderRowPerformance(result, viewMode = "regular") {
                         >
                             ${badge ? `<span class="row-flag ${badge.className}">${badge.label}</span>` : ''}
                             <canvas id="chart-${prefix}-${index}" width="70" height="70"></canvas>
-                            <div class="row-doughnut-label">${row.displayKey}</div>
+                            <div class="row-doughnut-label">${row.key}</div>
                             <div class="row-doughnut-value">${row.isOff ? "Off" : `${row.accuracy}%`}</div>
                         </button>
                     `;
@@ -1963,6 +1962,34 @@ function loadModeResultsFromKeys(keys, expectedMode) {
     return Array.from(mergedMap.values());
 }
 
+function parseStoredResultTimestamp(result) {
+    const dateStr = String(result?.date || "").trim();
+    const timeStr = String(result?.startedAt || "").trim();
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        const direct = Date.parse(`${dateStr}T${timeStr || "00:00"}`);
+        if (Number.isFinite(direct)) return direct;
+
+        const match12h = timeStr.match(/^(\d{1,2}):(\d{2})\s*([AP]M)$/i);
+        if (match12h) {
+            let hours = Number(match12h[1]) % 12;
+            const minutes = Number(match12h[2]);
+            const meridiem = match12h[3].toUpperCase();
+            if (meridiem === "PM") hours += 12;
+            const rebuilt = Date.parse(`${dateStr}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`);
+            if (Number.isFinite(rebuilt)) return rebuilt;
+        }
+    }
+
+    const fallback = Date.parse(dateStr);
+    if (Number.isFinite(fallback)) return fallback;
+
+    const idMatch = String(result?.id || "").match(/(\d{13})$/);
+    if (idMatch) return Number(idMatch[1]);
+
+    return 0;
+}
+
 function loadStoredResults() {
     const readingTests = loadModeResultsFromKeys([
         READING_TEST_RESULTS_STORAGE_KEY,
@@ -1981,8 +2008,8 @@ function loadStoredResults() {
     ], "writing");
 
     const tests = [...readingTests, ...writingTests].sort((a, b) => {
-        const aTime = Date.parse(`${a.date || "1970-01-01"}T${a.startedAt || "00:00"}`) || 0;
-        const bTime = Date.parse(`${b.date || "1970-01-01"}T${b.startedAt || "00:00"}`) || 0;
+        const aTime = parseStoredResultTimestamp(a);
+        const bTime = parseStoredResultTimestamp(b);
         return bTime - aTime;
     });
 
