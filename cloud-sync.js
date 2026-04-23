@@ -112,6 +112,19 @@ function snapshotSection(sectionName) {
   };
 }
 
+function hasMeaningfulSectionData(sectionName, data) {
+  if (!data || typeof data !== 'object') return false;
+  const scalarValues = Object.values(data).filter((value) => typeof value === 'string' || typeof value === 'number');
+  if (scalarValues.some((value) => Number(value || 0) > 0)) return true;
+
+  const values = Object.values(data);
+  return values.some((value) => {
+    if (Array.isArray(value)) return value.length > 0;
+    if (value && typeof value === 'object') return Object.keys(value).length > 0;
+    return false;
+  });
+}
+
 function snapshotSectionFixed(sectionName) {
   const def = SECTION_DEFS[sectionName];
   const data = {};
@@ -124,8 +137,13 @@ function snapshotSectionFixed(sectionName) {
     if (sectionName === 'wordBank') fallback = [];
     data[field] = readJSON(key, fallback);
   });
+  const storedUpdatedAt = normalizeTimestamp(localStorage.getItem(def.updatedAtKey));
+  const inferredUpdatedAt = storedUpdatedAt || (hasMeaningfulSectionData(sectionName, data) ? Date.now() : 0);
+  if (!storedUpdatedAt && inferredUpdatedAt) {
+    localStorage.setItem(def.updatedAtKey, String(inferredUpdatedAt));
+  }
   return {
-    updatedAt: normalizeTimestamp(localStorage.getItem(def.updatedAtKey)),
+    updatedAt: inferredUpdatedAt,
     data
   };
 }
@@ -161,11 +179,15 @@ function mergeCloudIntoLocal(snapshot) {
   Object.keys(SECTION_DEFS).forEach((name) => {
     const remoteSection = snapshot.sections[name];
     if (!remoteSection) return;
-    const localUpdatedAt = normalizeTimestamp(localStorage.getItem(SECTION_DEFS[name].updatedAtKey));
+    const localSection = snapshotSectionFixed(name);
+    const localUpdatedAt = normalizeTimestamp(localSection.updatedAt);
     const remoteUpdatedAt = normalizeTimestamp(remoteSection.updatedAt);
-    if (remoteUpdatedAt > localUpdatedAt) {
-      writeSectionToLocal(name, remoteSection.data, remoteUpdatedAt);
-    } else if (localUpdatedAt > remoteUpdatedAt) {
+    const localHasData = hasMeaningfulSectionData(name, localSection.data);
+    const remoteHasData = hasMeaningfulSectionData(name, remoteSection.data);
+
+    if (remoteUpdatedAt > localUpdatedAt || (remoteUpdatedAt === localUpdatedAt && remoteHasData && !localHasData)) {
+      writeSectionToLocal(name, remoteSection.data, remoteUpdatedAt || Date.now());
+    } else if (localUpdatedAt > remoteUpdatedAt || (localUpdatedAt === remoteUpdatedAt && localHasData && !remoteHasData)) {
       localPreferred = true;
     }
   });
