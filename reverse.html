@@ -1696,7 +1696,7 @@ body[data-display-mode="mobile"] .main {
 
 /* Mode Atlas profile/dev polish */
 .drawer-close,.profile-close,#profileCloseBtn,#studyProfileClose{min-width:42px!important;min-height:38px!important;height:auto!important;padding:8px 12px!important;font-size:13px!important;line-height:1!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;white-space:nowrap!important;}
-.ma-dev-panel{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:9999;background:rgba(0,0,0,.58);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:18px}.ma-dev-panel.open{display:flex}.ma-dev-card{width:min(420px,100%);border-radius:24px;padding:18px;background:linear-gradient(180deg,rgba(22,25,34,.98),rgba(9,11,16,.98));border:1px solid rgba(255,255,255,.11);box-shadow:0 28px 90px rgba(0,0,0,.58);color:var(--text,#f7f8ff)}.ma-dev-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px}.ma-dev-title{font-size:20px;font-weight:900;letter-spacing:-.03em}.ma-dev-row{display:grid;gap:8px;padding:12px 0;border-top:1px solid rgba(255,255,255,.08)}.ma-dev-label{color:var(--muted,#9aa3b8);font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.10em}.ma-dev-actions{display:flex;flex-wrap:wrap;gap:8px}.ma-dev-btn{appearance:none;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.055);color:var(--text,#f7f8ff);border-radius:999px;padding:9px 12px;font:inherit;font-size:13px;font-weight:800;cursor:pointer}.ma-dev-btn.active,.ma-dev-btn:hover{background:rgba(125,181,255,.14);border-color:rgba(125,181,255,.34)}
+.ma-dev-panel{position:fixed;right:18px;bottom:18px;display:none;z-index:9999;width:min(430px,calc(100vw - 28px));max-height:min(72vh,620px);overflow:auto;background:transparent;padding:0;pointer-events:none}.ma-dev-panel.open{display:block}.ma-dev-card{pointer-events:auto;border-radius:22px;padding:16px;background:linear-gradient(180deg,rgba(22,25,34,.98),rgba(9,11,16,.98));border:1px solid rgba(255,255,255,.12);box-shadow:0 18px 55px rgba(0,0,0,.52);color:var(--text,#f7f8ff);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}.ma-dev-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px}.ma-dev-title{font-size:18px;font-weight:900;letter-spacing:-.03em}.ma-dev-row{display:grid;gap:8px;padding:11px 0;border-top:1px solid rgba(255,255,255,.08)}.ma-dev-label{color:var(--muted,#9aa3b8);font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.10em}.ma-dev-actions{display:flex;flex-wrap:wrap;gap:8px}.ma-dev-btn{appearance:none;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.055);color:var(--text,#f7f8ff);border-radius:999px;padding:9px 12px;font:inherit;font-size:13px;font-weight:800;cursor:pointer}.ma-dev-btn.active,.ma-dev-btn:hover{background:rgba(125,181,255,.14);border-color:rgba(125,181,255,.34)}
 .ma-profile-nav-cleaned .drawer-action[href$="test.html"],.ma-profile-nav-cleaned .drawer-action[href$="wordbank.html"],.ma-profile-nav-cleaned .drawer-action[href$="default.html"],.ma-profile-nav-cleaned .drawer-action[href$="reverse.html"]{display:none!important}
 </style>
 </head>
@@ -4556,6 +4556,33 @@ importModalBackdrop.addEventListener("click", (e) => {
     if (e.target === importModalBackdrop) closeImportModal();
 });
 
+function refreshSaveBackedStateFromCloud() {
+    settings = { ...DEFAULT_SETTINGS, ...loadJSON("reverseSettings", DEFAULT_SETTINGS) };
+    settings.activeBottomTab = null;
+    stats = loadJSON("reverseCharStats", {});
+    times = loadJSON("reverseCharTimes", {});
+    srs = loadJSON("reverseCharSrs", {});
+    scoreHistory = normalizeScoreHistory(loadJSON("reverseScoreHistory", createDefaultScoreHistory()));
+    dailyChallengeHistory = loadJSON("reverseDailyChallengeHistory", {});
+    highScore = Number(localStorage.getItem("reverseHighScore") || "0");
+    if (!Array.isArray(settings.hiraganaRows)) settings.hiraganaRows = Object.keys(hiraganaRows);
+    if (!Array.isArray(settings.katakanaRows)) settings.katakanaRows = [];
+    if (!["same_row", "random"].includes(settings.comboMode)) settings.comboMode = "random";
+    rebuildCharMap();
+    ensureDataObjects();
+    buildModifierButtons();
+    buildOptionButtons();
+    buildRows("rowOptions", hiraganaRows, "hiraganaRows", "h_");
+    buildRows("katakanaRowOptions", katakanaRows, "katakanaRows", "k_");
+    applyPanelStates();
+    updateTrialConfigVisibility();
+    updateTopStats();
+    renderHeatmap();
+    renderScoreHistory();
+    if (!sessionStarted) showIdleState();
+    if (DEBUG_PANEL) renderDebugPanel();
+}
+
 function init() {
     rebuildCharMap();
 
@@ -4586,9 +4613,14 @@ function init() {
     saveAll();
 }
 
-window.addEventListener("focus", () => {
-    window.KanaCloudSync?.hydrateFromCloud(true).catch(() => {});
-});
+function hydrateAndRefreshTrainer() {
+    window.KanaCloudSync?.hydrateFromCloud(true)
+        .then(() => refreshSaveBackedStateFromCloud())
+        .catch(() => refreshSaveBackedStateFromCloud());
+}
+window.addEventListener("focus", hydrateAndRefreshTrainer);
+window.addEventListener("pageshow", () => setTimeout(hydrateAndRefreshTrainer, 120));
+setTimeout(hydrateAndRefreshTrainer, 700);
 
 init();
 
@@ -4663,7 +4695,7 @@ init();
   function getDisplay(){ return localStorage.getItem(KEY_DISPLAY) || 'auto'; }
   function setDisplay(value){ localStorage.setItem(KEY_DISPLAY, value); document.body.dataset.displayMode = value; refreshSettings(); }
   function applyDisplay(){ document.body.dataset.displayMode = getDisplay(); }
-  function tone(freq, dur, type='sine', gain=0.05){
+  function tone(freq, dur, type='sine', gain=0.22){
     if (getSound() === 'off' || prefersReduced) return;
     try {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -4680,10 +4712,10 @@ init();
     } catch(e) {}
   }
   function play(name){
-    if (name === 'correct') { tone(660,0.10,'sine',0.055); setTimeout(()=>tone(880,0.12,'sine',0.03),70); return; }
-    if (name === 'wrong') { tone(180,0.14,'triangle',0.035); return; }
-    if (name === 'open') { tone(440,0.07,'sine',0.025); return; }
-    tone(520,0.055,'sine',0.018);
+    if (name === 'correct') { tone(660,0.10,'sine',0.24); setTimeout(()=>tone(880,0.12,'sine',0.18),70); return; }
+    if (name === 'wrong') { tone(180,0.16,'triangle',0.22); return; }
+    if (name === 'open') { tone(440,0.08,'sine',0.16); return; }
+    tone(520,0.06,'sine',0.14);
   }
   function injectSettings(){
     const drawers = document.querySelectorAll('.profile-drawer, #profileDrawer, .drawer, aside[aria-hidden]');
@@ -4734,8 +4766,18 @@ init();
   function playSound(n){if(window.ModeAtlasUI&&typeof window.ModeAtlasUI.playSound==='function')window.ModeAtlasUI.playSound(n||'open')}
   function cleanDuplicateDisplay(){document.querySelectorAll('.ma-display-controls').forEach(el=>el.remove());document.querySelectorAll('.ma-settings-panel').forEach(panel=>{const rows=[...panel.querySelectorAll('.ma-settings-row')];rows.filter(r=>/Display/i.test(r.textContent||'')).slice(1).forEach(r=>r.remove());rows.filter(r=>/Sound/i.test(r.textContent||'')).forEach(r=>r.remove())})}
   function normalizeProfileActions(){document.querySelectorAll('.profile-drawer,#profileDrawer').forEach(drawer=>{const actions=drawer.querySelector('.drawer-actions');if(!actions)return;actions.classList.add('ma-profile-nav-cleaned');[...actions.querySelectorAll('a')].forEach(a=>{const href=(a.getAttribute('href')||'').toLowerCase();const isAtlas=href==='index.html'||href.endsWith('/index.html')||/mode-atlas\/?$/.test(href);const isKana=href==='kana.html'||href.endsWith('/kana.html');if(!isAtlas&&!isKana)a.remove();else{a.classList.add('drawer-action');a.textContent=isAtlas?'Atlas':'Kana Trainer';a.setAttribute('href',isAtlas?'index.html':'kana.html')}});if(!actions.querySelector('a[href="index.html"]')){const a=document.createElement('a');a.className='drawer-action';a.href='index.html';a.textContent='Atlas';actions.appendChild(a)}if(!actions.querySelector('a[href="kana.html"]')){const a=document.createElement('a');a.className='drawer-action';a.href='kana.html';a.textContent='Kana Trainer';actions.appendChild(a)}})}
-  function ensureDevPanel(){if(document.getElementById('maDevPanel'))return;const p=document.createElement('div');p.className='ma-dev-panel';p.id='maDevPanel';p.innerHTML='<div class="ma-dev-card" role="dialog" aria-modal="true" aria-labelledby="maDevTitle"><div class="ma-dev-head"><div class="ma-dev-title" id="maDevTitle">Dev menu</div><button class="ma-dev-btn" type="button" data-ma-dev-close>Close</button></div><div class="ma-dev-row"><div class="ma-dev-label">Sound</div><div class="ma-dev-actions"><button class="ma-dev-btn" type="button" data-ma-dev-sound="soft">Soft</button><button class="ma-dev-btn" type="button" data-ma-dev-sound="off">Off</button><button class="ma-dev-btn" type="button" data-ma-dev-test-sound>Test sound</button></div></div><div class="ma-dev-row"><div class="ma-dev-label">Console</div><div style="color:var(--muted,#9aa3b8);font-size:13px;line-height:1.5;">Open this menu with <strong>dev()</strong>.</div></div></div>';document.body.appendChild(p);p.addEventListener('click',e=>{if(e.target===p||e.target.closest('[data-ma-dev-close]'))closeDev();const s=e.target.closest('[data-ma-dev-sound]');if(s){setSound(s.dataset.maDevSound);playSound('open')}if(e.target.closest('[data-ma-dev-test-sound]'))playSound('correct')});updateDevState()}
-  function updateDevState(){document.querySelectorAll('[data-ma-dev-sound]').forEach(b=>b.classList.toggle('active',b.dataset.maDevSound===getSound()))}
+  function ensureDevPanel(){
+  if(document.getElementById('maDevPanel'))return;
+  const p=document.createElement('div');p.className='ma-dev-panel';p.id='maDevPanel';
+  const hasPageDebug=(typeof window.renderDebugPanel==='function'||typeof renderDebugPanel==='function');
+  const hasCloseDebug=(typeof window.closeDebugPanel==='function'||typeof closeDebugPanel==='function');
+  const debugLabel=document.getElementById('testHeatmap')?'Storage debug':'SRS debug';
+  p.innerHTML='<div class="ma-dev-card" role="dialog" aria-modal="false" aria-labelledby="maDevTitle"><div class="ma-dev-head"><div class="ma-dev-title" id="maDevTitle">Dev menu</div><button class="ma-dev-btn" type="button" data-ma-dev-close>Close</button></div><div class="ma-dev-row"><div class="ma-dev-label">Sound</div><div class="ma-dev-actions"><button class="ma-dev-btn" type="button" data-ma-dev-sound="soft">Sound on</button><button class="ma-dev-btn" type="button" data-ma-dev-sound="off">Sound off</button><button class="ma-dev-btn" type="button" data-ma-dev-test-sound>Test sound</button></div></div>'+(hasPageDebug?'<div class="ma-dev-row"><div class="ma-dev-label">Page tools</div><div class="ma-dev-actions"><button class="ma-dev-btn" type="button" data-ma-dev-page-debug>'+debugLabel+'</button>'+(hasCloseDebug?'<button class="ma-dev-btn" type="button" data-ma-dev-page-debug-close>Close debug</button>':'')+'</div></div>':'')+'<div class="ma-dev-row"><div class="ma-dev-label">Console</div><div style="color:var(--muted,#9aa3b8);font-size:13px;line-height:1.5;">Open this panel with <strong>dev()</strong>. It stays in the bottom-right so the page remains usable.</div></div></div>';
+  document.body.appendChild(p);
+  p.addEventListener('click',e=>{if(e.target.closest('[data-ma-dev-close]'))closeDev();const s=e.target.closest('[data-ma-dev-sound]');if(s){setSound(s.dataset.maDevSound);playSound('open')}if(e.target.closest('[data-ma-dev-test-sound]')){playSound('correct');setTimeout(()=>playSound('wrong'),180)}if(e.target.closest('[data-ma-dev-page-debug]')){try{(window.renderDebugPanel||renderDebugPanel)()}catch(err){console.warn('Debug panel unavailable',err)}}if(e.target.closest('[data-ma-dev-page-debug-close]')){try{(window.closeDebugPanel||closeDebugPanel)()}catch(err){console.warn('Close debug unavailable',err)}}});
+  updateDevState();
+}
+    function updateDevState(){document.querySelectorAll('[data-ma-dev-sound]').forEach(b=>b.classList.toggle('active',b.dataset.maDevSound===getSound()))}
   function openDev(){ensureDevPanel();document.getElementById('maDevPanel').classList.add('open');updateDevState()}
   function closeDev(){const p=document.getElementById('maDevPanel');if(p)p.classList.remove('open')}
   function polish(){cleanDuplicateDisplay();normalizeProfileActions();ensureDevPanel()}
