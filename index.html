@@ -6,24 +6,24 @@
   <title>Mode Atlas</title>
   <style>
     :root {
-      --bg: #06070b;
-      --bg-soft: #0d1018;
-      --panel: rgba(17, 20, 30, 0.58);
-      --panel-strong: rgba(14, 17, 26, 0.82);
-      --border: rgba(255,255,255,0.08);
-      --border-soft: rgba(255,255,255,0.05);
-      --text: #f7f8fb;
-      --muted: #a4adbf;
-      --muted-2: #cfd5e2;
-      --blue: #84bbff;
-      --green: #81e4ad;
-      --violet: #b694ff;
-      --gold: #f6d38a;
-      --rose: #ff9fca;
-      --shadow: 0 30px 90px rgba(0,0,0,0.42);
-      --radius-xl: 38px;
-      --radius-lg: 28px;
-      --radius-md: 20px;
+      --bg: #05060b;
+      --bg-2: #0b0f1d;
+      --panel: rgba(13, 17, 31, 0.72);
+      --panel-2: rgba(255,255,255,0.055);
+      --border: rgba(255,255,255,0.105);
+      --border-strong: rgba(255,255,255,0.18);
+      --text: #f7f8ff;
+      --soft: #b8c1d7;
+      --muted: #818ca5;
+      --blue: #7db5ff;
+      --violet: #b596ff;
+      --green: #75e3a8;
+      --gold: #f5cf78;
+      --rose: #ff8fbd;
+      --shadow: 0 28px 80px rgba(0,0,0,0.45);
+      --radius-xl: 36px;
+      --radius-lg: 26px;
+      --radius-md: 18px;
     }
 
     * { box-sizing: border-box; }
@@ -32,14 +32,13 @@
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: Arial, sans-serif;
+      font-family: Arial, Helvetica, sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at 12% 14%, rgba(132,187,255,0.14), transparent 24%),
-        radial-gradient(circle at 86% 12%, rgba(182,148,255,0.12), transparent 22%),
-        radial-gradient(circle at 50% 100%, rgba(246,211,138,0.08), transparent 32%),
-        linear-gradient(180deg, #171a22 0%, #06070b 100%);
-      padding: 28px;
+        radial-gradient(circle at 18% 14%, rgba(125,181,255,0.22), transparent 26%),
+        radial-gradient(circle at 86% 18%, rgba(181,150,255,0.18), transparent 25%),
+        radial-gradient(circle at 50% 94%, rgba(117,227,168,0.09), transparent 32%),
+        linear-gradient(180deg, #131827 0%, var(--bg) 58%, #030409 100%);
       overflow-x: hidden;
     }
 
@@ -47,739 +46,910 @@
       content: "";
       position: fixed;
       inset: 0;
+      z-index: 0;
       pointer-events: none;
       background-image:
-        linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px);
-      background-size: 42px 42px;
-      mask-image: radial-gradient(circle at center, black 34%, transparent 90%);
-      opacity: 0.45;
+        linear-gradient(rgba(255,255,255,0.026) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.026) 1px, transparent 1px);
+      background-size: 54px 54px;
+      mask-image: radial-gradient(circle at 50% 28%, black 0%, transparent 72%);
+      opacity: 0.5;
     }
 
+    body::after {
+      content: "あ　ア　言　音　読　書　学";
+      position: fixed;
+      inset: auto -3vw 3vh auto;
+      z-index: 0;
+      pointer-events: none;
+      color: rgba(255,255,255,0.025);
+      font-size: clamp(7rem, 18vw, 17rem);
+      font-weight: 900;
+      letter-spacing: -0.12em;
+      white-space: nowrap;
+      transform: rotate(-7deg);
+    }
+
+    a { color: inherit; }
+
     .shell {
-      width: min(1260px, 100%);
+      width: min(1240px, calc(100% - 32px));
       margin: 0 auto;
       position: relative;
       z-index: 1;
     }
 
-    .glass {
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      background: linear-gradient(180deg, rgba(18,22,32,0.58), rgba(10,12,18,0.82));
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow);
-    }
-
-    .hero {
-      position: relative;
-      overflow: hidden;
-      border-radius: var(--radius-xl);
-      padding: 34px 34px 42px;
-      min-height: 84vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
-    .hero::before,
-    .hero::after,
-    .orb,
-    .orb-2 {
-      content: "";
-      position: absolute;
-      border-radius: 999px;
-      pointer-events: none;
-      filter: blur(12px);
-    }
-
-    .hero::before {
-      width: 340px;
-      height: 340px;
-      top: -150px;
-      right: -70px;
-      background: radial-gradient(circle, rgba(132,187,255,0.28), rgba(132,187,255,0) 72%);
-    }
-
-    .hero::after {
-      width: 300px;
-      height: 300px;
-      left: -90px;
-      bottom: -120px;
-      background: radial-gradient(circle, rgba(255,159,202,0.17), rgba(255,159,202,0) 72%);
-    }
-
-    .orb {
-      width: 240px;
-      height: 240px;
-      top: 12%;
-      left: 44%;
-      background: radial-gradient(circle, rgba(129,228,173,0.12), rgba(129,228,173,0) 74%);
-    }
-
-    .orb-2 {
-      width: 220px;
-      height: 220px;
-      bottom: 10%;
-      right: 24%;
-      background: radial-gradient(circle, rgba(246,211,138,0.10), rgba(246,211,138,0) 74%);
-    }
-
     .topbar {
+      position: sticky;
+      top: 14px;
+      z-index: 20;
+      margin: 14px auto 0;
+      width: min(1240px, calc(100% - 32px));
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
       gap: 16px;
-      flex-wrap: wrap;
-      margin-bottom: 40px;
+      padding: 12px;
+      border-radius: 999px;
+      background: rgba(8, 11, 21, 0.58);
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 18px 48px rgba(0,0,0,0.24);
     }
 
     .brand {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
+      text-decoration: none;
+      min-width: 0;
     }
 
     .brand-mark {
-      width: 62px;
-      height: 62px;
-      border-radius: 20px;
+      width: 44px;
+      height: 44px;
+      border-radius: 16px;
       display: grid;
       place-items: center;
-      font-size: 24px;
       font-weight: 900;
       letter-spacing: -0.08em;
-      color: white;
       background:
-        radial-gradient(circle at 28% 24%, rgba(255,255,255,0.18), transparent 30%),
-        linear-gradient(135deg, rgba(132,187,255,0.96), rgba(182,148,255,0.96));
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 18px 34px rgba(0,0,0,0.28);
+        radial-gradient(circle at 26% 22%, rgba(255,255,255,0.22), transparent 28%),
+        linear-gradient(135deg, rgba(125,181,255,0.95), rgba(181,150,255,0.95));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 14px 26px rgba(0,0,0,0.26);
     }
 
-    .brand-meta {
+    .brand-text {
       display: grid;
-      gap: 5px;
-    }
-
-    .brand-label {
-      color: var(--muted);
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.18em;
-      font-weight: 700;
+      gap: 2px;
     }
 
     .brand-name {
-      font-size: 22px;
-      font-weight: 800;
-      letter-spacing: -0.04em;
+      font-size: 17px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1;
     }
 
-    .top-note {
+    .brand-sub {
       color: var(--muted);
-      font-size: 13px;
+      font-size: 11px;
+      font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.14em;
-      font-weight: 700;
+      letter-spacing: 0.13em;
     }
 
-    .hero-main {
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-link, .profile-trigger {
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--soft);
+      text-decoration: none;
+      border-radius: 999px;
+      padding: 10px 14px;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+    }
+
+    .nav-link:hover, .profile-trigger:hover {
+      color: white;
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.08);
+      transform: translateY(-1px);
+    }
+
+    .profile-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.08);
+    }
+
+    .profile-dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
       display: grid;
-      grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.7fr);
-      gap: 48px;
+      place-items: center;
+      font-size: 11px;
+      background: linear-gradient(135deg, var(--green), var(--blue));
+      color: #061018;
+      font-weight: 900;
+      overflow: hidden;
+    }
+
+    .profile-dot img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .hero {
+      min-height: calc(100vh - 74px);
+      display: grid;
+      place-items: center;
+      padding: 84px 0 56px;
+      position: relative;
+    }
+
+    .atlas-card {
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      border-radius: clamp(28px, 5vw, 58px);
+      padding: clamp(26px, 5vw, 68px);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.032)),
+        radial-gradient(circle at 82% 16%, rgba(125,181,255,0.18), transparent 30%),
+        radial-gradient(circle at 12% 84%, rgba(117,227,168,0.10), transparent 26%),
+        rgba(8, 11, 21, 0.72);
+      border: 1px solid rgba(255,255,255,0.105);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .atlas-card::before {
+      content: "";
+      position: absolute;
+      inset: 1px;
+      border-radius: inherit;
+      pointer-events: none;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.12), transparent 32%),
+        radial-gradient(circle at 68% 44%, rgba(245,207,120,0.08), transparent 26%);
+      mask-image: linear-gradient(180deg, black, transparent 78%);
+    }
+
+    .hero-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1.06fr) minmax(300px, 0.62fr);
+      gap: clamp(28px, 5vw, 70px);
       align-items: end;
-      flex: 1;
     }
 
     .eyebrow {
       display: inline-flex;
       align-items: center;
-      gap: 9px;
-      padding: 10px 15px;
+      gap: 10px;
+      color: #dce7ff;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.055);
       border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(255,255,255,0.04);
-      color: #dfe5f2;
+      padding: 10px 14px;
       font-size: 12px;
-      font-weight: 800;
+      font-weight: 900;
       text-transform: uppercase;
       letter-spacing: 0.16em;
-      margin-bottom: 20px;
+      margin-bottom: 22px;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--green);
+      box-shadow: 0 0 18px rgba(117,227,168,0.76);
     }
 
     h1 {
-      margin: 0 0 18px;
-      font-size: clamp(3.4rem, 8vw, 6.4rem);
-      line-height: 0.9;
-      letter-spacing: -0.07em;
-      max-width: 9ch;
-    }
-
-    .hero-copy {
       margin: 0;
-      max-width: 720px;
-      color: var(--muted-2);
-      font-size: 1.08rem;
-      line-height: 1.82;
+      max-width: 9.6ch;
+      font-size: clamp(4rem, 10vw, 9.4rem);
+      line-height: 0.84;
+      letter-spacing: -0.085em;
+      text-wrap: balance;
     }
 
-    .rail {
-      align-self: stretch;
+    .hero-line {
+      margin: 24px 0 0;
+      max-width: 680px;
+      color: var(--soft);
+      font-size: clamp(1.05rem, 1.9vw, 1.35rem);
+      line-height: 1.72;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 34px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 50px;
+      border-radius: 999px;
+      padding: 14px 19px;
+      text-decoration: none;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.055);
+      color: var(--text);
+      font-weight: 900;
+      transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .button:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255,255,255,0.20);
+      background: rgba(255,255,255,0.08);
+      box-shadow: 0 18px 30px rgba(0,0,0,0.22);
+    }
+
+    .button.primary {
+      background: linear-gradient(135deg, var(--gold), #fff0bf);
+      color: #0a0d15;
+      border-color: rgba(255,255,255,0.24);
+    }
+
+    .constellation {
+      min-height: 520px;
+      position: relative;
+      border-radius: 34px;
+      background:
+        radial-gradient(circle at 50% 46%, rgba(255,255,255,0.10), transparent 8%),
+        radial-gradient(circle at 20% 26%, rgba(125,181,255,0.26), transparent 8%),
+        radial-gradient(circle at 80% 22%, rgba(181,150,255,0.22), transparent 8%),
+        radial-gradient(circle at 28% 78%, rgba(117,227,168,0.18), transparent 8%),
+        radial-gradient(circle at 76% 74%, rgba(245,207,120,0.18), transparent 8%),
+        rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.08);
+      overflow: hidden;
+    }
+
+    .constellation::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(32deg, transparent 0 22%, rgba(255,255,255,0.13) 22.2%, transparent 22.6% 100%),
+        linear-gradient(148deg, transparent 0 20%, rgba(255,255,255,0.10) 20.2%, transparent 20.55% 100%),
+        linear-gradient(78deg, transparent 0 43%, rgba(255,255,255,0.12) 43.2%, transparent 43.55% 100%),
+        linear-gradient(118deg, transparent 0 62%, rgba(255,255,255,0.10) 62.2%, transparent 62.55% 100%);
+      opacity: 0.45;
+    }
+
+    .node {
+      position: absolute;
+      width: 96px;
+      height: 96px;
+      border-radius: 30px;
       display: grid;
-      gap: 14px;
-      padding: 18px;
-      border-radius: var(--radius-lg);
-      background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.025));
-      border: 1px solid var(--border-soft);
+      place-items: center;
+      text-align: center;
+      font-size: 38px;
+      font-weight: 900;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 18px 44px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.10);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
     }
 
-    .rail-kicker {
+    .node span {
+      display: block;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--soft);
+      margin-top: 6px;
+    }
+
+    .node.one { top: 11%; left: 12%; }
+    .node.two { top: 15%; right: 10%; }
+    .node.three { top: 42%; left: 39%; width: 124px; height: 124px; border-radius: 38px; font-size: 50px; }
+    .node.four { bottom: 10%; left: 16%; }
+    .node.five { bottom: 12%; right: 13%; }
+
+    .branches {
+      padding: 18px 0 70px;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .section-kicker {
       color: var(--muted);
-      font-size: 11px;
+      font-size: 12px;
+      font-weight: 900;
       text-transform: uppercase;
       letter-spacing: 0.16em;
-      font-weight: 800;
+      margin-bottom: 10px;
     }
 
-    .rail-copy {
-      color: #dde3ef;
+    h2 {
+      margin: 0;
+      font-size: clamp(2.2rem, 5vw, 4.2rem);
+      line-height: 0.93;
+      letter-spacing: -0.06em;
+    }
+
+    .section-note {
+      color: var(--soft);
+      max-width: 420px;
       font-size: 15px;
-      line-height: 1.7;
+      line-height: 1.65;
+      margin: 0;
+      text-align: right;
     }
 
-    .rail-list {
-      display: grid;
-      gap: 10px;
-      margin-top: 4px;
-    }
-
-    .rail-item {
-      display: flex;
-      gap: 10px;
-      align-items: start;
-      color: #e9edf6;
-      font-size: 14px;
-      line-height: 1.55;
-    }
-
-    .rail-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 999px;
-      background: linear-gradient(135deg, var(--blue), var(--green));
-      box-shadow: 0 0 14px rgba(132,187,255,0.5);
-      margin-top: 6px;
-      flex: 0 0 auto;
-    }
-
-    .hero-foot {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 24px;
-      align-items: end;
-      margin-top: 52px;
-      padding-top: 24px;
-      border-top: 1px solid rgba(255,255,255,0.08);
-    }
-
-    .presence {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0,1fr));
-      gap: 12px;
-      max-width: 720px;
-    }
-
-    .presence-card {
-      padding: 16px 18px;
-      border-radius: 18px;
-      background: rgba(255,255,255,0.035);
-      border: 1px solid rgba(255,255,255,0.07);
-    }
-
-    .presence-card .label {
-      color: var(--muted);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      font-weight: 800;
-      margin-bottom: 8px;
-    }
-
-    .presence-card .value {
-      font-size: 22px;
-      font-weight: 900;
-      letter-spacing: -0.04em;
-    }
-
-    .actions {
-      display: flex;
-      gap: 14px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-
-    .action {
-      text-decoration: none;
-      border-radius: 999px;
-      padding: 15px 22px;
-      font-weight: 800;
-      font-size: 15px;
-      transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
-      white-space: nowrap;
-    }
-
-    .action:hover,
-    .suite-card:hover { transform: translateY(-2px); }
-
-    .action.primary {
-      color: #081018;
-      background: linear-gradient(135deg, var(--gold), #fff0c3);
-      box-shadow: 0 14px 26px rgba(246,211,138,0.18);
-    }
-
-    .action.secondary {
-      color: var(--text);
-      border: 1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.04);
-    }
-
-    .suite {
-      margin-top: 22px;
+    .branch-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 22px;
+      gap: 18px;
     }
 
-    .suite-card {
-      text-decoration: none;
-      color: inherit;
-      border-radius: 34px;
-      min-height: 440px;
-      padding: 28px;
+    .branch {
       position: relative;
       overflow: hidden;
-      border: 1px solid rgba(255,255,255,0.08);
+      min-height: 370px;
+      border-radius: 34px;
+      padding: 26px;
+      text-decoration: none;
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.09);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.26);
       transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
     }
 
-    .suite-card:hover {
-      border-color: rgba(255,255,255,0.16);
-      box-shadow: 0 24px 42px rgba(0,0,0,0.24);
+    .branch:hover {
+      transform: translateY(-4px);
+      border-color: rgba(255,255,255,0.20);
+      box-shadow: 0 32px 70px rgba(0,0,0,0.34);
     }
 
-    .suite-card::before {
+    .branch::before {
       content: "";
       position: absolute;
       inset: 0;
       pointer-events: none;
-      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0));
-      opacity: 0.55;
+      opacity: 0.9;
     }
 
-    .suite-card.kana {
+    .branch.kana::before {
       background:
-        radial-gradient(circle at top right, rgba(132,187,255,0.23), transparent 36%),
-        radial-gradient(circle at bottom left, rgba(129,228,173,0.10), transparent 30%),
-        linear-gradient(180deg, rgba(15,26,39,0.98), rgba(10,12,18,0.98));
+        radial-gradient(circle at 88% 12%, rgba(125,181,255,0.30), transparent 34%),
+        radial-gradient(circle at 14% 86%, rgba(117,227,168,0.16), transparent 28%);
     }
 
-    .suite-card.words {
+    .branch.words::before {
       background:
-        radial-gradient(circle at top right, rgba(255,159,202,0.16), transparent 34%),
-        radial-gradient(circle at bottom left, rgba(246,211,138,0.11), transparent 28%),
-        linear-gradient(180deg, rgba(28,20,39,0.98), rgba(11,12,18,0.98));
+        radial-gradient(circle at 90% 12%, rgba(255,143,189,0.24), transparent 34%),
+        radial-gradient(circle at 14% 86%, rgba(245,207,120,0.14), transparent 28%);
     }
 
-    .suite-head {
+    .branch.future {
+      cursor: default;
+      opacity: 0.78;
+    }
+
+    .branch.future::before {
+      background:
+        radial-gradient(circle at 90% 12%, rgba(181,150,255,0.16), transparent 34%),
+        radial-gradient(circle at 14% 86%, rgba(255,255,255,0.06), transparent 28%);
+    }
+
+    .branch-top, .branch-bottom {
       position: relative;
       z-index: 1;
+    }
+
+    .branch-meta {
       display: flex;
       justify-content: space-between;
       gap: 12px;
       align-items: start;
+      margin-bottom: 26px;
     }
 
-    .suite-kicker {
+    .branch-label {
+      color: rgba(255,255,255,0.68);
       font-size: 12px;
+      font-weight: 900;
       text-transform: uppercase;
       letter-spacing: 0.14em;
-      color: rgba(255,255,255,0.66);
-      margin-bottom: 12px;
-      font-weight: 800;
     }
 
-    .suite-title {
-      font-size: 42px;
-      line-height: 0.94;
-      letter-spacing: -0.06em;
-      font-weight: 900;
-      margin-bottom: 14px;
-    }
-
-    .suite-copy {
-      position: relative;
-      z-index: 1;
-      color: #d9ddec;
-      font-size: 15px;
-      line-height: 1.74;
-      max-width: 34ch;
-    }
-
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 7px 11px;
+    .branch-chip {
+      color: #f4f7ff;
+      border: 1px solid rgba(255,255,255,0.13);
+      background: rgba(255,255,255,0.075);
       border-radius: 999px;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.12);
+      padding: 7px 10px;
       font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.08em;
+      font-weight: 900;
       text-transform: uppercase;
+      letter-spacing: 0.08em;
       white-space: nowrap;
     }
 
-    .suite-body {
-      position: relative;
-      z-index: 1;
-      display: grid;
-      gap: 14px;
-      margin-top: 26px;
+    .branch-title {
+      font-size: clamp(2.5rem, 6vw, 5.4rem);
+      line-height: 0.86;
+      letter-spacing: -0.08em;
+      font-weight: 900;
+      max-width: 8ch;
     }
 
-    .line {
-      display: grid;
-      grid-template-columns: 132px 1fr;
-      gap: 18px;
-      align-items: start;
-      padding-top: 12px;
-      border-top: 1px solid rgba(255,255,255,0.08);
-    }
-
-    .line:first-child { border-top: none; padding-top: 0; }
-
-    .line-label {
-      color: rgba(255,255,255,0.60);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.16em;
-      font-weight: 800;
-      padding-top: 2px;
-    }
-
-    .line-text {
-      color: #eef2f9;
+    .branch-copy {
+      color: var(--soft);
+      max-width: 34ch;
       font-size: 15px;
       line-height: 1.62;
+      margin-top: 18px;
     }
 
-    .suite-foot {
-      position: relative;
-      z-index: 1;
+    .branch-bottom {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 12px;
-      margin-top: 28px;
-      font-size: 15px;
-      font-weight: 800;
+      gap: 16px;
+      padding-top: 24px;
+      margin-top: 34px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      color: white;
+      font-weight: 900;
     }
 
-    .arrow { font-size: 20px; opacity: 0.92; }
-
-    .footer {
-      text-align: center;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.7;
-      padding: 22px 8px 8px;
-    }
-
-
-
-    .identity-panel {
-      margin-top: 28px;
-      display: flex;
-      justify-content: space-between;
-      gap: 18px;
-      align-items: center;
-      padding: 18px;
-      border-radius: 24px;
-      background: linear-gradient(180deg, rgba(18,22,32,0.72), rgba(10,12,18,0.82));
-      border: 1px solid rgba(255,255,255,0.08);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
-    }
-
-    .identity-user {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      min-width: 0;
-    }
-
-    .identity-avatar {
-      width: 58px;
-      height: 58px;
-      border-radius: 18px;
-      object-fit: cover;
-      display: none;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      box-shadow: 0 14px 30px rgba(0,0,0,0.26);
-    }
-
-    .identity-name {
-      font-size: 18px;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      margin-bottom: 4px;
-    }
-
-    .identity-email {
-      color: var(--muted-2);
-      font-size: 13px;
-      margin-bottom: 6px;
-    }
-
-    .identity-status {
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.5;
-      max-width: 54ch;
-    }
-
-    .identity-actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
+    .branch-arrow {
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,0.075);
+      border: 1px solid rgba(255,255,255,0.11);
       flex: 0 0 auto;
     }
 
-    .identity-btn {
-      appearance: none;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(255,255,255,0.04);
-      color: var(--text);
-      border-radius: 14px;
-      padding: 11px 14px;
+    .future-row {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .future-tile {
+      min-height: 150px;
+      padding: 18px;
+      border-radius: 24px;
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.07);
+      color: var(--soft);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .future-tile strong {
+      color: #f2f5ff;
+      font-size: 22px;
+      letter-spacing: -0.04em;
+    }
+
+    .future-tile span {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-weight: 900;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: center;
+      padding: 26px 0 38px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .footer strong { color: var(--soft); }
+
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      background: rgba(0,0,0,0.52);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s ease;
+    }
+
+    .drawer-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .profile-drawer {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      bottom: 16px;
+      z-index: 90;
+      width: min(420px, calc(100vw - 32px));
+      transform: translateX(calc(100% + 24px));
+      transition: transform 0.22s ease;
+      border-radius: 32px;
+      background:
+        radial-gradient(circle at 88% 10%, rgba(125,181,255,0.18), transparent 30%),
+        linear-gradient(180deg, rgba(19,24,39,0.96), rgba(7,9,18,0.98));
+      border: 1px solid rgba(255,255,255,0.10);
+      box-shadow: 0 30px 90px rgba(0,0,0,0.52);
+      padding: 22px;
+      overflow-y: auto;
+    }
+
+    .profile-drawer.open {
+      transform: translateX(0);
+    }
+
+    .drawer-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .drawer-title {
+      font-size: 24px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+    }
+
+    .close-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.09);
+      background: rgba(255,255,255,0.05);
+      color: white;
       cursor: pointer;
+      font-size: 22px;
+    }
+
+    .profile-card {
+      border-radius: 26px;
+      padding: 18px;
+      background: rgba(255,255,255,0.055);
+      border: 1px solid rgba(255,255,255,0.085);
+      margin-bottom: 14px;
+    }
+
+    .profile-user {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .profile-avatar {
+      width: 66px;
+      height: 66px;
+      border-radius: 22px;
+      object-fit: cover;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      display: none;
+    }
+
+    .profile-name {
+      font-weight: 900;
+      font-size: 19px;
+      letter-spacing: -0.03em;
+      margin-bottom: 5px;
+    }
+
+    .profile-email, .profile-status {
+      color: var(--soft);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .profile-status { margin-top: 12px; color: var(--muted); }
+
+    .profile-actions {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .profile-actions button, .profile-actions a {
+      width: 100%;
+      text-align: center;
+      text-decoration: none;
+      border-radius: 16px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.055);
+      color: var(--text);
       font: inherit;
-      font-weight: 700;
-      transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
-      white-space: nowrap;
+      font-weight: 900;
+      cursor: pointer;
     }
 
-    .identity-btn:hover {
-      transform: translateY(-1px);
-      border-color: rgba(132,187,255,0.34);
-      box-shadow: 0 10px 22px rgba(0,0,0,0.22);
+    .profile-actions .primary {
+      background: linear-gradient(135deg, rgba(125,181,255,0.28), rgba(181,150,255,0.20));
+      border-color: rgba(125,181,255,0.26);
     }
 
-    .identity-btn.primary {
-      background: linear-gradient(135deg, rgba(132,187,255,0.18), rgba(182,148,255,0.18));
-      border-color: rgba(132,187,255,0.30);
-      color: #eef4ff;
+    .profile-note {
+      padding: 14px;
+      border-radius: 18px;
+      color: var(--soft);
+      font-size: 13px;
+      line-height: 1.6;
+      background: rgba(0,0,0,0.18);
+      border: 1px solid rgba(255,255,255,0.06);
     }
 
-    @media (max-width: 1080px) {
-      .hero-main,
-      .hero-foot,
-      .suite {
-        grid-template-columns: 1fr;
-      }
-
-      .actions { justify-content: flex-start; }
-      .hero { min-height: auto; }
-      .identity-panel { flex-direction: column; align-items: flex-start; }
-      .identity-actions { justify-content: flex-start; }
+    @media (max-width: 980px) {
+      .topbar { border-radius: 24px; }
+      .nav-link { display: none; }
+      .hero-grid, .branch-grid, .future-row { grid-template-columns: 1fr; }
+      .constellation { min-height: 380px; }
+      .section-head { align-items: start; flex-direction: column; }
+      .section-note { text-align: left; }
     }
 
-    @media (max-width: 760px) {
-      body { padding: 16px; }
-      .hero { padding: 22px 20px 26px; }
-      .presence { grid-template-columns: 1fr; }
-      .suite-card { min-height: 360px; padding: 22px; }
-      .suite-title { font-size: 34px; }
-      .line { grid-template-columns: 1fr; gap: 8px; }
-      .identity-panel { padding: 16px; }
-      .identity-user { align-items: flex-start; }
-      .identity-actions { width: 100%; }
-      .identity-btn { width: 100%; justify-content: center; }
+    @media (max-width: 640px) {
+      .topbar { width: calc(100% - 20px); top: 10px; }
+      .shell { width: calc(100% - 20px); }
+      .brand-sub { display: none; }
+      .hero { padding-top: 42px; }
+      .atlas-card { padding: 22px; }
+      .hero-actions .button { width: 100%; }
+      .constellation { display: none; }
+      .branch { min-height: 300px; }
+      .future-row { display: none; }
+      .footer { flex-direction: column; align-items: flex-start; }
     }
   </style>
 </head>
 <body>
-  <div class="shell">
-    <section class="hero glass">
-      <div class="orb"></div>
-      <div class="orb-2"></div>
-
-      <div class="topbar">
-        <div class="brand">
-          <div class="brand-mark">あア</div>
-          <div class="brand-meta">
-            <div class="brand-label">Learning ecosystem</div>
-            <div class="brand-name">Mode Atlas</div>
-          </div>
-        </div>
-        <div class="top-note">Built for elegant daily study</div>
+  <header class="topbar">
+    <a class="brand" href="index.html" aria-label="Mode Atlas home">
+      <div class="brand-mark">あア</div>
+      <div class="brand-text">
+        <div class="brand-name">Mode Atlas</div>
+        <div class="brand-sub">Study ecosystem</div>
       </div>
+    </a>
+    <nav class="nav" aria-label="Primary navigation">
+      <a class="nav-link" href="#branches">Branches</a>
+      <button class="profile-trigger" id="profileOpenBtn" type="button" aria-haspopup="dialog" aria-controls="profileDrawer">
+        <span class="profile-dot" id="topProfileDot">M</span>
+        <span>Profile</span>
+      </button>
+    </nav>
+  </header>
 
-      <div class="hero-main">
-        <div>
-          <div class="eyebrow">A polished home for Japanese study</div>
-          <h1>Study in a space worth returning to.</h1>
-          <p class="hero-copy">
-            Mode Atlas brings your learning tools into one calm, high-clarity environment. Start with character fluency, keep the words that matter, and build a study flow that feels refined, focused, and easy to live with every day.
-          </p>
-        </div>
-
-        <aside class="rail">
-          <div class="rail-kicker">Designed around your flow</div>
-          <div class="rail-copy">
-            Two focused experiences sit at the centre right now: one for fast character mastery, one for keeping the words you discover.
-          </div>
-          <div class="rail-list">
-            <div class="rail-item"><span class="rail-dot"></span><span>Practice recognition and recall with a dedicated kana space.</span></div>
-            <div class="rail-item"><span class="rail-dot"></span><span>Collect words with meanings and notes in your own private bank.</span></div>
-            <div class="rail-item"><span class="rail-dot"></span><span>Leave room for future tools without losing the clean feel of the system.</span></div>
-          </div>
-        </aside>
-      </div>
-
-      <div class="identity-panel">
-        <div class="identity-user">
-          <img class="identity-avatar" id="identityAvatar" alt="" />
+  <main class="shell">
+    <section class="hero">
+      <div class="atlas-card">
+        <div class="hero-grid">
           <div>
-            <div class="identity-name" id="identityName">Guest</div>
-            <div class="identity-email" id="identityEmail">Not signed in</div>
-            <div class="identity-status" id="identityStatus">Sign in with Google to give the homepage a synced identity and share your saves across devices.</div>
+            <div class="eyebrow">Study ecosystem</div>
+            <h1>Choose your next mode.</h1>
+            <p class="hero-line">
+              A home base for Japanese study tools that feel focused, personal, and ready to grow with you.
+            </p>
+            <div class="hero-actions">
+              <a class="button primary" href="#branches">Explore branches ↓</a>
+            </div>
           </div>
-        </div>
-        <div class="identity-actions">
-          <button class="identity-btn primary" id="identitySignInBtn" type="button">Sign in with Google</button>
-          <button class="identity-btn" id="identitySignOutBtn" type="button" style="display:none;">Sign out</button>
-        </div>
-      </div>
 
-      <div class="hero-foot">
-        <div class="presence">
-          <div class="presence-card">
-            <div class="label">Foundation</div>
-            <div class="value">Kana</div>
+          <div class="constellation" aria-hidden="true">
+            <div class="node one">か<span>Kana</span></div>
+            <div class="node two">語<span>Words</span></div>
+            <div class="node three">学<span>Atlas</span></div>
+            <div class="node four">音<span>Future</span></div>
+            <div class="node five">文<span>Future</span></div>
           </div>
-          <div class="presence-card">
-            <div class="label">Expansion</div>
-            <div class="value">Words</div>
-          </div>
-          <div class="presence-card">
-            <div class="label">Direction</div>
-            <div class="value">Growth</div>
-          </div>
-        </div>
-
-        <div class="actions">
-          <a class="action primary" href="kana.html">Enter Kana Trainer</a>
-          <a class="action secondary" href="wordbank.html">Open Word Bank</a>
         </div>
       </div>
     </section>
 
-    <section class="suite">
-      <a class="suite-card kana" href="kana.html">
+    <section class="branches" id="branches">
+      <div class="section-head">
         <div>
-          <div class="suite-head">
-            <div>
-              <div class="suite-kicker">The foundation</div>
-              <div class="suite-title">Kana Trainer</div>
-            </div>
-            <div class="chip">Core</div>
-          </div>
-
-          <div class="suite-copy">
-            A focused space for building confidence with individual characters through repeated use, clean feedback, and a rhythm that suits daily practice.
-          </div>
-
-          <div class="suite-body">
-            <div class="line">
-              <div class="line-label">Focus</div>
-              <div class="line-text">Hiragana and katakana recognition, recall, and consistent repetition.</div>
-            </div>
-            <div class="line">
-              <div class="line-label">Feel</div>
-              <div class="line-text">Fast, sharp, and structured for the kind of short sessions that compound over time.</div>
-            </div>
-            <div class="line">
-              <div class="line-label">Use</div>
-              <div class="line-text">Return whenever you want to tighten your foundations and keep your kana active.</div>
-            </div>
-          </div>
+          <div class="section-kicker">Branches</div>
+          <h2>Pick a path.</h2>
         </div>
+        <p class="section-note">Start with the branch that fits today’s study.</p>
+      </div>
 
-        <div class="suite-foot">
-          <span>Enter trainer</span>
-          <span class="arrow">→</span>
-        </div>
-      </a>
-
-      <a class="suite-card words" href="wordbank.html">
-        <div>
-          <div class="suite-head">
-            <div>
-              <div class="suite-kicker">The collection</div>
-              <div class="suite-title">Word Bank</div>
+      <div class="branch-grid">
+        <a class="branch kana" href="kana.html">
+          <div class="branch-top">
+            <div class="branch-meta">
+              <div class="branch-label">Foundation</div>
+              <div class="branch-chip">Live</div>
             </div>
-            <div class="chip">New</div>
+            <div class="branch-title">Kana Trainer</div>
+            <div class="branch-copy">Sharpen hiragana and katakana until they feel instant.</div>
           </div>
-
-          <div class="suite-copy">
-            A personal archive for the words you meet while studying. Save them quickly, shape them over time, and keep your own growing reference close.
+          <div class="branch-bottom">
+            <span>Enter branch</span>
+            <span class="branch-arrow">→</span>
           </div>
+        </a>
 
-          <div class="suite-body">
-            <div class="line">
-              <div class="line-label">Focus</div>
-              <div class="line-text">Kana words, romaji, meanings, notes, and a record that grows with you.</div>
+        <a class="branch words" href="wordbank.html">
+          <div class="branch-top">
+            <div class="branch-meta">
+              <div class="branch-label">Collection</div>
+              <div class="branch-chip">Live</div>
             </div>
-            <div class="line">
-              <div class="line-label">Feel</div>
-              <div class="line-text">Calm, flexible, and built for collecting useful words without breaking your study flow.</div>
-            </div>
-            <div class="line">
-              <div class="line-label">Use</div>
-              <div class="line-text">Capture words on the spot, then revisit, refine, favourite, and search whenever needed.</div>
-            </div>
+            <div class="branch-title">Word Bank</div>
+            <div class="branch-copy">Collect the words that stick, then bring them back when you need them.</div>
           </div>
-        </div>
+          <div class="branch-bottom">
+            <span>Enter branch</span>
+            <span class="branch-arrow">→</span>
+          </div>
+        </a>
+      </div>
 
-        <div class="suite-foot">
-          <span>Open bank</span>
-          <span class="arrow">→</span>
-        </div>
-      </a>
+      <div class="future-row" aria-label="Future study branches">
+        <div class="future-tile"><span>Coming soon</span><strong>Listening</strong></div>
+        <div class="future-tile"><span>Coming soon</span><strong>Grammar</strong></div>
+        <div class="future-tile"><span>Coming soon</span><strong>Reading</strong></div>
+      </div>
     </section>
 
-    <div class="footer">
-      A quieter, more elegant front door for the tools you build next.
+    <footer class="footer">
+      <div><strong>Mode Atlas</strong> · Study ecosystem</div>
+      <div>Begin anywhere. Return often.</div>
+    </footer>
+  </main>
+
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <aside class="profile-drawer" id="profileDrawer" role="dialog" aria-modal="true" aria-labelledby="profileDrawerTitle">
+    <div class="drawer-top">
+      <div class="drawer-title" id="profileDrawerTitle">Profile</div>
+      <button class="close-btn" id="profileCloseBtn" type="button" aria-label="Close profile">×</button>
     </div>
-  </div>
+
+    <div class="profile-card">
+      <div class="profile-user">
+        <img class="profile-avatar" id="identityAvatar" alt="" />
+        <div>
+          <div class="profile-name" id="identityName">Guest</div>
+          <div class="profile-email" id="identityEmail">Not signed in</div>
+        </div>
+      </div>
+      <div class="profile-status" id="identityStatus">Sign in with Google to sync your study ecosystem across devices.</div>
+      <div class="profile-actions">
+        <button class="primary" id="identitySignInBtn" type="button">Sign in with Google</button>
+        <button id="identitySignOutBtn" type="button" style="display:none;">Sign out</button>
+      </div>
+    </div>
+
+    <div class="profile-card">
+      <div class="section-kicker">Your branches</div>
+      <div class="profile-actions">
+        <a href="kana.html">Open Kana Trainer</a>
+        <a href="wordbank.html">Open Word Bank</a>
+      </div>
+    </div>
+
+    <div class="profile-note">
+      Sign in once and your saved study space follows you between devices.
+    </div>
+  </aside>
 
 <script src="firebase-config.js"></script>
+<script>
+(function () {
+  const drawer = document.getElementById('profileDrawer');
+  const backdrop = document.getElementById('drawerBackdrop');
+  const openBtn = document.getElementById('profileOpenBtn');
+  const closeBtn = document.getElementById('profileCloseBtn');
+
+  function openProfile() {
+    drawer.classList.add('open');
+    backdrop.classList.add('open');
+    closeBtn.focus();
+  }
+
+  function closeProfile() {
+    drawer.classList.remove('open');
+    backdrop.classList.remove('open');
+  }
+
+  openBtn?.addEventListener('click', openProfile);
+  closeBtn?.addEventListener('click', closeProfile);
+  backdrop?.addEventListener('click', closeProfile);
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeProfile();
+  });
+})();
+</script>
 <script type="module">
-import "./cloud-sync.js";
-window.KanaCloudSync.bindUi({
-  signInBtn: document.getElementById('identitySignInBtn'),
-  signOutBtn: document.getElementById('identitySignOutBtn'),
-  statusEl: document.getElementById('identityStatus'),
-  nameEl: document.getElementById('identityName'),
-  emailEl: document.getElementById('identityEmail'),
-  photoEl: document.getElementById('identityAvatar')
-});
+const topProfileDot = document.getElementById('topProfileDot');
+const identityAvatar = document.getElementById('identityAvatar');
+
+function updateTopProfileDot() {
+  const user = window.KanaCloudSync?.getUser?.();
+  if (user?.photoURL) {
+    topProfileDot.innerHTML = `<img src="${user.photoURL}" alt="" />`;
+  } else {
+    topProfileDot.textContent = user?.displayName?.trim()?.[0]?.toUpperCase() || 'M';
+  }
+}
+
+try {
+  await import('./cloud-sync.js');
+
+  if (window.KanaCloudSync) {
+    window.KanaCloudSync.bindUi({
+      signInBtn: document.getElementById('identitySignInBtn'),
+      signOutBtn: document.getElementById('identitySignOutBtn'),
+      statusEl: document.getElementById('identityStatus'),
+      nameEl: document.getElementById('identityName'),
+      emailEl: document.getElementById('identityEmail'),
+      photoEl: identityAvatar
+    });
+
+    window.KanaCloudSync.ready.then(updateTopProfileDot);
+    document.getElementById('identitySignInBtn')?.addEventListener('click', () => setTimeout(updateTopProfileDot, 900));
+    document.getElementById('identitySignOutBtn')?.addEventListener('click', () => setTimeout(updateTopProfileDot, 300));
+  }
+} catch (error) {
+  console.warn('Cloud profile controls could not load.', error);
+  const status = document.getElementById('identityStatus');
+  if (status) status.textContent = 'Profile is available, but cloud sign-in could not load on this page.';
+}
 </script>
 </body>
 </html>
