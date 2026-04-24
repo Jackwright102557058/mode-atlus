@@ -1098,6 +1098,52 @@ body[data-display-mode="mobile"] .study-platform { display: none !important; }
 
 .about-strip{padding:0 0 46px}.about-card{display:grid;grid-template-columns:.9fr 1.1fr;gap:24px;align-items:stretch;border-radius:34px;padding:28px;background:linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.028));border:1px solid rgba(255,255,255,.10);box-shadow:0 24px 70px rgba(0,0,0,.30);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}.about-copy{display:grid;align-content:center;gap:12px}.about-copy h2{font-size:clamp(2rem,4vw,3.8rem);letter-spacing:-.055em}.about-copy p{margin:0;color:var(--soft);line-height:1.65;max-width:54ch}.about-points{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.about-point{min-height:150px;border-radius:24px;padding:18px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08)}.about-point strong{display:block;font-size:18px;margin-bottom:8px}.about-point span{color:var(--muted);font-size:13px;line-height:1.5}@media(max-width:860px){.about-card,.about-points{grid-template-columns:1fr}.about-strip{padding-bottom:28px}}
 
+
+
+/* === First-screen hero fit polish === */
+@media (min-width: 761px) {
+  .topbar { margin-top: 10px !important; }
+  .hero {
+    min-height: auto !important;
+    padding: clamp(28px, 4.2vh, 42px) 0 28px !important;
+    display: grid !important;
+    place-items: start center !important;
+  }
+  .atlas-card {
+    padding: clamp(30px, 3.8vw, 52px) !important;
+  }
+  .hero-grid {
+    gap: clamp(24px, 4vw, 52px) !important;
+    align-items: center !important;
+  }
+  .eyebrow {
+    margin-bottom: clamp(14px, 1.9vw, 18px) !important;
+    padding: 8px 13px !important;
+  }
+  h1 {
+    font-size: clamp(4.2rem, 7.6vw, 7.7rem) !important;
+    line-height: 0.86 !important;
+  }
+  .hero-line {
+    margin-top: clamp(16px, 2vw, 22px) !important;
+    line-height: 1.58 !important;
+  }
+  .hero-actions {
+    margin-top: clamp(20px, 2.6vw, 28px) !important;
+  }
+  .constellation {
+    transform: scale(0.92);
+    transform-origin: center;
+  }
+}
+@media (min-width: 1181px) and (max-height: 900px) {
+  .hero { padding-top: 24px !important; }
+  .atlas-card { padding: clamp(28px, 3.2vw, 44px) !important; }
+  h1 { font-size: clamp(4rem, 6.7vw, 7rem) !important; }
+  .hero-line { font-size: clamp(1rem, 1.45vw, 1.18rem) !important; }
+  .constellation { transform: scale(0.86); }
+}
+
 </style>
 </head>
 <body><div class="ma-loading-screen" id="maLoadingScreen" aria-live="polite"><div class="ma-loading-card"><div class="ma-loading-head"><div class="ma-loading-mark">学</div><div><div class="ma-loading-title">Mode Atlas</div><div class="ma-loading-sub">Preparing your study space…</div></div></div><div class="ma-skeleton"></div><div class="ma-skeleton"></div><div class="ma-skeleton short"></div></div></div>
