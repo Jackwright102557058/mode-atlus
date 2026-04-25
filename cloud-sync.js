@@ -136,7 +136,7 @@ function buildLocalSnapshot() {
     sections[name] = snapshotSectionFixed(name);
   });
   return {
-    version: 'cloud-v1',
+    version: 'cloud-v2-restore-guard',
     updatedAt: Date.now(),
     sections
   };
@@ -184,8 +184,9 @@ function getLocalSectionData(sectionName) {
   return snapshotSectionFixed(sectionName).data || {};
 }
 
-function mergeCloudIntoLocal(snapshot) {
+function mergeCloudIntoLocal(snapshot, options = {}) {
   if (!snapshot || typeof snapshot !== 'object' || !snapshot.sections) return { localPreferred: false };
+  const forceRemote = !!options.forceRemote;
   let localPreferred = false;
   Object.keys(SECTION_DEFS).forEach((name) => {
     const remoteSection = snapshot.sections[name];
@@ -198,8 +199,12 @@ function mergeCloudIntoLocal(snapshot) {
     const localHasData = sectionHasMeaningfulData(name, localData);
 
     // Repair for earlier builds that stamped a fresh timestamp onto blank/default local data.
-    // If this device/page is blank but Firestore has real data, restore Firestore even when
-    // the local timestamp is newer. This is what Kana/Reading/Writing need after the menu revamp.
+    // If forceRemote is requested, trust Firestore for any section that contains real data.
+    if (forceRemote && remoteHasData) {
+      writeSectionToLocal(name, remoteData, remoteUpdatedAt || Date.now());
+      return;
+    }
+
     if (remoteHasData && !localHasData) {
       writeSectionToLocal(name, remoteData, remoteUpdatedAt || Date.now());
       return;
@@ -314,7 +319,7 @@ async function hydrateFromCloud(force = false) {
   if (!force && hydratedForUserId === currentUser.uid) return true;
   const snap = await getDoc(getDocRef(currentUser.uid));
   if (snap.exists()) {
-    const { localPreferred } = mergeCloudIntoLocal(snap.data());
+    const { localPreferred } = mergeCloudIntoLocal(snap.data(), { forceRemote: !!force });
     hydratedForUserId = currentUser.uid;
     if (localPreferred) scheduleSync(250);
   } else {
@@ -362,6 +367,28 @@ async function syncNow() {
   await authReady;
   if (!CONFIG_READY || !currentUser || !db) return false;
   const snapshot = buildLocalSnapshot();
+
+  // Never let a page that booted with blank/default localStorage overwrite good cloud data.
+  // This protects Reading/Writing/Kana dashboards while the profile/menu refactor is settling.
+  try {
+    const snap = await getDoc(getDocRef(currentUser.uid));
+    if (snap.exists()) {
+      const existing = snap.data() || {};
+      const existingSections = existing.sections || {};
+      Object.keys(SECTION_DEFS).forEach((name) => {
+        const localSection = snapshot.sections?.[name];
+        const localData = localSection?.data || {};
+        const remoteSection = existingSections[name];
+        const remoteData = remoteSection?.data || {};
+        if (!sectionHasMeaningfulData(name, localData) && sectionHasMeaningfulData(name, remoteData)) {
+          snapshot.sections[name] = remoteSection;
+        }
+      });
+    }
+  } catch (error) {
+    console.warn('Cloud save merge guard could not read existing data.', error);
+  }
+
   await setDoc(getDocRef(currentUser.uid), snapshot, { merge: true });
   return true;
 }
