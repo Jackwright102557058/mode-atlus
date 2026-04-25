@@ -937,8 +937,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
     .choice-availability-toast {
         position: fixed;
         left: 50%;
-        bottom: 86px;
-        z-index: 120;
+        top: calc(env(safe-area-inset-top, 0px) + 14px);
+        z-index: 10000;
         max-width: min(360px, calc(100vw - 32px));
         padding: 10px 14px;
         border-radius: 999px;
@@ -950,7 +950,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
         font-weight: 800;
         line-height: 1.35;
         opacity: 0;
-        transform: translate(-50%, 10px);
+        transform: translate(-50%, -8px);
         pointer-events: none;
         transition: opacity 0.2s ease, transform 0.2s ease;
     }
@@ -1207,7 +1207,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
     .profile-overlay {
         position: fixed;
         inset: 0;
-        z-index: 120;
+        z-index: 10000;
         background: rgba(0,0,0,0.52);
         backdrop-filter: blur(5px);
         -webkit-backdrop-filter: blur(5px);
@@ -3594,7 +3594,11 @@ function getHeatmapCharsForDisplay() {
 function renderHeatmap() {
     heatmapEl.innerHTML = "";
 
-    for (const ch of activeChars) {
+    const heatmapChars = typeof getHeatmapCharsForDisplay === "function"
+        ? getHeatmapCharsForDisplay()
+        : activeChars;
+
+    for (const ch of heatmapChars) {
         const cell = document.createElement("div");
         cell.className = "cell";
         if (String(ch).length > 1) cell.classList.add("combo");

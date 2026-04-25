@@ -3370,7 +3370,11 @@ function getHeatmapCharsForDisplay() {
 function renderHeatmap() {
     heatmapEl.innerHTML = "";
 
-    for (const ch of activeChars) {
+    const heatmapChars = typeof getHeatmapCharsForDisplay === "function"
+        ? getHeatmapCharsForDisplay()
+        : activeChars;
+
+    for (const ch of heatmapChars) {
         const cell = document.createElement("div");
         cell.className = "cell";
         if (String(ch).length > 1) cell.classList.add("combo");
