@@ -3524,13 +3524,15 @@ function buildOptionButtons() { /* Options menu removed; SRS now lives in Modifi
 
 function buildRows(containerId, sourceRows, selectedRowsKey, displayPrefix) {
     const container = document.getElementById(containerId);
+    if (!container) return;
     container.innerHTML = "";
     const lockedModes = isModeLocked();
 
     for (const row of Object.keys(sourceRows)) {
         const label = row.replace(displayPrefix, "");
-        const btn = makeToggleButton(label, settings[selectedRowsKey].includes(row), () => {
-            const arr = settings[selectedRowsKey];
+        const isSelected = Array.isArray(settings[selectedRowsKey]) && settings[selectedRowsKey].includes(row);
+        const btn = makeToggleButton(label, isSelected, () => {
+            const arr = Array.isArray(settings[selectedRowsKey]) ? settings[selectedRowsKey] : [];
             if (arr.includes(row)) {
                 settings[selectedRowsKey] = arr.filter(r => r !== row);
             } else {
@@ -3538,6 +3540,10 @@ function buildRows(containerId, sourceRows, selectedRowsKey, displayPrefix) {
             }
             onSettingsChanged();
         }, lockedModes);
+        btn.dataset.rowKey = row;
+        btn.dataset.rowGroup = selectedRowsKey;
+        btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+        btn.classList.toggle('active', isSelected);
         container.appendChild(btn);
     }
 }
@@ -3584,9 +3590,35 @@ function showPopupForChar(ch, e) {
 
 
 function getHeatmapCharsForDisplay() {
-    // Heatmap visibility follows the selected rows only.
-    // Saved stats/times are still used for those visible kana, but unselected rows stay hidden.
-    return [...activeChars];
+    // Old behaviour restored: the Stats heatmap only shows currently selected rows.
+    // Saved stats/times are used for those visible kana, but they do not make hidden rows appear.
+    const out = [];
+    const addMap = (map) => {
+        if (!map) return;
+        for (const ch of Object.keys(map)) {
+            if (!out.includes(ch)) out.push(ch);
+        }
+    };
+    const selectedHira = Array.isArray(settings.hiraganaRows) ? settings.hiraganaRows.filter(r => hiraganaRows[r]) : [];
+    const selectedKata = Array.isArray(settings.katakanaRows) ? settings.katakanaRows.filter(r => katakanaRows[r]) : [];
+
+    for (const row of selectedHira) {
+        addMap(hiraganaRows[row]);
+        if (settings.dakuten) addMap(dakutenRows[row]);
+        if (settings.yoon) addMap(yoonRows[row]);
+        if (settings.yoon && settings.dakuten) addMap(yoonRows[`${row}_dakuten`]);
+        if (settings.extendedKatakana) addMap(extendedKatakanaRows[row]);
+    }
+
+    for (const row of selectedKata) {
+        addMap(katakanaRows[row]);
+        if (settings.dakuten) addMap(dakutenRows[row]);
+        if (settings.yoon) addMap(yoonRows[row]);
+        if (settings.yoon && settings.dakuten) addMap(yoonRows[`${row}_dakuten`]);
+        if (settings.extendedKatakana) addMap(extendedKatakanaRows[row]);
+    }
+
+    return out;
 }
 
 function renderHeatmap() {
@@ -5537,8 +5569,38 @@ init();
     r.onload=()=>{
       try{
         const parsed=JSON.parse(String(r.result||'{}'));
-        const data=parsed&&parsed.data&&typeof parsed.data==='object'?parsed.data:parsed;
+        let data=parsed&&parsed.data&&typeof parsed.data==='object'?parsed.data:parsed;
         if(!data||typeof data!=='object'||Array.isArray(data))throw new Error('bad');
+        // Support older single-page Kana Trainer exports as well as full Mode Atlas exports.
+        // Old Reading saves used keys like stats/times/srs; the app now stores those as charStats/charTimes/charSrs.
+        const normalizedImportData = { ...data };
+        const mapLegacyKey = (from, to) => {
+          if (data[from] !== undefined && normalizedImportData[to] === undefined) normalizedImportData[to] = data[from];
+        };
+        mapLegacyKey('stats', 'charStats');
+        mapLegacyKey('times', 'charTimes');
+        mapLegacyKey('srs', 'charSrs');
+        mapLegacyKey('scoreHistory', 'scoreHistory');
+        mapLegacyKey('dailyChallengeHistory', 'dailyChallengeHistory');
+        mapLegacyKey('settings', 'settings');
+        mapLegacyKey('highScore', 'highScore');
+        mapLegacyKey('reverseStats', 'reverseCharStats');
+        mapLegacyKey('reverseTimes', 'reverseCharTimes');
+        mapLegacyKey('reverseSrs', 'reverseCharSrs');
+        mapLegacyKey('writingStats', 'reverseCharStats');
+        mapLegacyKey('writingTimes', 'reverseCharTimes');
+        mapLegacyKey('writingSrs', 'reverseCharSrs');
+        mapLegacyKey('reverseScoreHistory', 'reverseScoreHistory');
+        mapLegacyKey('reverseDailyChallengeHistory', 'reverseDailyChallengeHistory');
+        mapLegacyKey('reverseSettings', 'reverseSettings');
+        mapLegacyKey('reverseHighScore', 'reverseHighScore');
+        mapLegacyKey('wordBank', 'kanaWordBank');
+        if (Array.isArray(data.testModeResults) && normalizedImportData.readingTestModeResults === undefined) {
+          normalizedImportData.readingTestModeResults = data.testModeResults.filter(item => (item && (item.mode || 'reading')) === 'reading');
+          normalizedImportData.writingTestModeResults = data.testModeResults.filter(item => item && item.mode === 'writing');
+          normalizedImportData.testModeResults = data.testModeResults;
+        }
+        data = normalizedImportData;
         try{ window.KanaCloudSync?.beginLocalImport?.(); }catch{}
         Object.entries(data).forEach(([k,v])=>{
           if(!k||BLOCK.test(k))return;

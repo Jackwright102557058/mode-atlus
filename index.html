@@ -2071,8 +2071,38 @@ try {
     r.onload=()=>{
       try{
         const parsed=JSON.parse(String(r.result||'{}'));
-        const data=parsed&&parsed.data&&typeof parsed.data==='object'?parsed.data:parsed;
+        let data=parsed&&parsed.data&&typeof parsed.data==='object'?parsed.data:parsed;
         if(!data||typeof data!=='object'||Array.isArray(data))throw new Error('bad');
+        // Support older single-page Kana Trainer exports as well as full Mode Atlas exports.
+        // Old Reading saves used keys like stats/times/srs; the app now stores those as charStats/charTimes/charSrs.
+        const normalizedImportData = { ...data };
+        const mapLegacyKey = (from, to) => {
+          if (data[from] !== undefined && normalizedImportData[to] === undefined) normalizedImportData[to] = data[from];
+        };
+        mapLegacyKey('stats', 'charStats');
+        mapLegacyKey('times', 'charTimes');
+        mapLegacyKey('srs', 'charSrs');
+        mapLegacyKey('scoreHistory', 'scoreHistory');
+        mapLegacyKey('dailyChallengeHistory', 'dailyChallengeHistory');
+        mapLegacyKey('settings', 'settings');
+        mapLegacyKey('highScore', 'highScore');
+        mapLegacyKey('reverseStats', 'reverseCharStats');
+        mapLegacyKey('reverseTimes', 'reverseCharTimes');
+        mapLegacyKey('reverseSrs', 'reverseCharSrs');
+        mapLegacyKey('writingStats', 'reverseCharStats');
+        mapLegacyKey('writingTimes', 'reverseCharTimes');
+        mapLegacyKey('writingSrs', 'reverseCharSrs');
+        mapLegacyKey('reverseScoreHistory', 'reverseScoreHistory');
+        mapLegacyKey('reverseDailyChallengeHistory', 'reverseDailyChallengeHistory');
+        mapLegacyKey('reverseSettings', 'reverseSettings');
+        mapLegacyKey('reverseHighScore', 'reverseHighScore');
+        mapLegacyKey('wordBank', 'kanaWordBank');
+        if (Array.isArray(data.testModeResults) && normalizedImportData.readingTestModeResults === undefined) {
+          normalizedImportData.readingTestModeResults = data.testModeResults.filter(item => (item && (item.mode || 'reading')) === 'reading');
+          normalizedImportData.writingTestModeResults = data.testModeResults.filter(item => item && item.mode === 'writing');
+          normalizedImportData.testModeResults = data.testModeResults;
+        }
+        data = normalizedImportData;
         try{ window.KanaCloudSync?.beginLocalImport?.(); }catch{}
         Object.entries(data).forEach(([k,v])=>{
           if(!k||BLOCK.test(k))return;
