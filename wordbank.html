@@ -1849,7 +1849,7 @@ body::before { pointer-events: none; }
 <script type="module">
 let cloudHydration = Promise.resolve(false);
 try {
-  await import("./cloud-sync.js");
+  await import("./cloud-sync.js?v=cloud-data-repair-20260425");
   if (window.KanaCloudSync) {
     window.KanaCloudSync.bindUi({
       signInBtn: document.getElementById('profileSignInBtn'),

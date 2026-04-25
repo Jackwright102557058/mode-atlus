@@ -112,19 +112,6 @@ function snapshotSection(sectionName) {
   };
 }
 
-function hasMeaningfulSectionData(sectionName, data) {
-  if (!data || typeof data !== 'object') return false;
-  const scalarValues = Object.values(data).filter((value) => typeof value === 'string' || typeof value === 'number');
-  if (scalarValues.some((value) => Number(value || 0) > 0)) return true;
-
-  const values = Object.values(data);
-  return values.some((value) => {
-    if (Array.isArray(value)) return value.length > 0;
-    if (value && typeof value === 'object') return Object.keys(value).length > 0;
-    return false;
-  });
-}
-
 function snapshotSectionFixed(sectionName) {
   const def = SECTION_DEFS[sectionName];
   const data = {};
@@ -137,13 +124,8 @@ function snapshotSectionFixed(sectionName) {
     if (sectionName === 'wordBank') fallback = [];
     data[field] = readJSON(key, fallback);
   });
-  const storedUpdatedAt = normalizeTimestamp(localStorage.getItem(def.updatedAtKey));
-  const inferredUpdatedAt = storedUpdatedAt || (hasMeaningfulSectionData(sectionName, data) ? Date.now() : 0);
-  if (!storedUpdatedAt && inferredUpdatedAt) {
-    localStorage.setItem(def.updatedAtKey, String(inferredUpdatedAt));
-  }
   return {
-    updatedAt: inferredUpdatedAt,
+    updatedAt: normalizeTimestamp(localStorage.getItem(def.updatedAtKey)),
     data
   };
 }
@@ -173,26 +155,65 @@ function writeSectionToLocal(sectionName, payload, updatedAt) {
   localStorage.setItem(def.updatedAtKey, String(normalizeTimestamp(updatedAt)));
 }
 
+function objectHasKeys(value) {
+  return !!value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0;
+}
+
+function arrayHasItems(value) {
+  return Array.isArray(value) && value.length > 0;
+}
+
+function numberStringIsPositive(value) {
+  const num = Number(value || 0);
+  return Number.isFinite(num) && num > 0;
+}
+
+function sectionHasMeaningfulData(sectionName, data = {}) {
+  if (!data || typeof data !== 'object') return false;
+  if (sectionName === 'wordBank') return arrayHasItems(data.items);
+  if (sectionName === 'readingTests' || sectionName === 'writingTests') {
+    return arrayHasItems(data.primary) || arrayHasItems(data.backup) || arrayHasItems(data.altPrimary) || arrayHasItems(data.altBackup);
+  }
+  if (sectionName === 'reading' || sectionName === 'writing') {
+    return objectHasKeys(data.stats) || objectHasKeys(data.times) || objectHasKeys(data.srs) || objectHasKeys(data.scoreHistory) || objectHasKeys(data.dailyChallengeHistory) || numberStringIsPositive(data.highScore);
+  }
+  return Object.keys(data).length > 0;
+}
+
+function getLocalSectionData(sectionName) {
+  return snapshotSectionFixed(sectionName).data || {};
+}
+
 function mergeCloudIntoLocal(snapshot) {
   if (!snapshot || typeof snapshot !== 'object' || !snapshot.sections) return { localPreferred: false };
   let localPreferred = false;
   Object.keys(SECTION_DEFS).forEach((name) => {
     const remoteSection = snapshot.sections[name];
     if (!remoteSection) return;
-    const localSection = snapshotSectionFixed(name);
-    const localUpdatedAt = normalizeTimestamp(localSection.updatedAt);
+    const localUpdatedAt = normalizeTimestamp(localStorage.getItem(SECTION_DEFS[name].updatedAtKey));
     const remoteUpdatedAt = normalizeTimestamp(remoteSection.updatedAt);
-    const localHasData = hasMeaningfulSectionData(name, localSection.data);
-    const remoteHasData = hasMeaningfulSectionData(name, remoteSection.data);
+    const remoteData = remoteSection.data || {};
+    const localData = getLocalSectionData(name);
+    const remoteHasData = sectionHasMeaningfulData(name, remoteData);
+    const localHasData = sectionHasMeaningfulData(name, localData);
 
-    if (remoteUpdatedAt > localUpdatedAt || (remoteUpdatedAt === localUpdatedAt && remoteHasData && !localHasData)) {
-      writeSectionToLocal(name, remoteSection.data, remoteUpdatedAt || Date.now());
-    } else if (localUpdatedAt > remoteUpdatedAt || (localUpdatedAt === remoteUpdatedAt && localHasData && !remoteHasData)) {
+    // Repair for earlier builds that stamped a fresh timestamp onto blank/default local data.
+    // If this device/page is blank but Firestore has real data, restore Firestore even when
+    // the local timestamp is newer. This is what Kana/Reading/Writing need after the menu revamp.
+    if (remoteHasData && !localHasData) {
+      writeSectionToLocal(name, remoteData, remoteUpdatedAt || Date.now());
+      return;
+    }
+
+    if (remoteUpdatedAt > localUpdatedAt) {
+      writeSectionToLocal(name, remoteData, remoteUpdatedAt);
+    } else if (localUpdatedAt > remoteUpdatedAt && localHasData) {
       localPreferred = true;
     }
   });
   return { localPreferred };
 }
+
 
 let app = null;
 let auth = null;
@@ -380,5 +401,6 @@ window.KanaCloudSync = {
   syncNow,
   markSectionUpdated,
   getUser,
-  isConfigured: () => CONFIG_READY
+  isConfigured: () => CONFIG_READY,
+  debugLocalSnapshot: buildLocalSnapshot
 };
