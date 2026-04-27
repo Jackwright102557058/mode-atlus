@@ -2,7 +2,7 @@
   if (window.__modeAtlasQolLoaded) return;
   window.__modeAtlasQolLoaded = true;
 
-  const APP_VERSION = '2.8.4';
+  const APP_VERSION = '2.8.5';
   const THEME_KEY = 'modeAtlasThemePreference';
   const LAST_PAGE_KEY = 'modeAtlasLastKanaPage';
   const DEV_PIN = '3522';

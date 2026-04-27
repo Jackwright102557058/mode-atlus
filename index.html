@@ -1669,7 +1669,7 @@ body::before { pointer-events: none; }
 <link rel="stylesheet" href="assets/mode-atlas-qol.css" />
 <script defer src="assets/mode-atlas-qol.js"></script>
 </head>
-<body><div class="ma-loading-screen" id="maLoadingScreen" aria-live="polite"><div class="ma-loading-card"><div class="ma-loading-head"><div class="ma-loading-mark">学</div><div><div class="ma-loading-title">Mode Atlas</div><div class="ma-loading-sub">Preparing your study space…</div></div></div><div class="ma-skeleton"></div><div class="ma-skeleton"></div><div class="ma-skeleton short"></div></div></div>
+<body><script id="maEarlyLoadingRelease">(function(){function r(){var e=document.getElementById("maLoadingScreen");if(e){e.classList.add("done");e.style.opacity="0";e.style.visibility="hidden";e.style.pointerEvents="none";setTimeout(function(){try{e.remove()}catch(t){}},250)}}window.ModeAtlasReleaseLoader=r;setTimeout(r,1200);setTimeout(r,2400);window.addEventListener("load",function(){setTimeout(r,250)})})();</script><div class="ma-loading-screen" id="maLoadingScreen" aria-live="polite"><div class="ma-loading-card"><div class="ma-loading-head"><div class="ma-loading-mark">学</div><div><div class="ma-loading-title">Mode Atlas</div><div class="ma-loading-sub">Preparing your study space…</div></div></div><div class="ma-skeleton"></div><div class="ma-skeleton"></div><div class="ma-skeleton short"></div></div></div>
 
   <header class="topbar">
     <a class="brand" href="index.html" aria-label="Mode Atlas home">

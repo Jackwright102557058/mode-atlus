@@ -1771,3 +1771,13 @@ html[data-ma-signed-in="false"] [data-ma-sign-in]{visibility:visible!important;p
   .study-nav{grid-template-columns:minmax(0,1fr) auto!important;}
   .profile-dot{width:32px!important;height:32px!important;min-width:32px!important;}
 }
+
+/* === v2.8.5 hard loading failsafe ===
+   Loading overlays must never be able to trap the app. The inline scripts also remove
+   this node, but CSS provides a no-JS fallback if any startup script errors first. */
+.ma-loading-screen{
+  animation: maHardLoaderDismiss 0.01s linear 2.4s forwards !important;
+}
+@keyframes maHardLoaderDismiss{
+  to{ opacity:0 !important; visibility:hidden !important; pointer-events:none !important; }
+}

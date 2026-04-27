@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mode-atlas-v2-8-4-session-defer-safe';
+const CACHE_NAME = 'mode-atlas-v2-8-5-loader-failsafe';
 const CORE = [
   './','index.html','kana.html','default.html','reverse.html','test.html','wordbank.html',
   'cloud-sync.js','firebase-config.js','site.webmanifest',
