@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mode-atlas-live-profile-results-fix-v1';
+const CACHE_NAME = 'mode-atlas-profile-auth-welcome-fix-v1';
 const CORE = [
   './','index.html','kana.html','default.html','reverse.html','test.html','wordbank.html',
   'cloud-sync.js','firebase-config.js','site.webmanifest',
