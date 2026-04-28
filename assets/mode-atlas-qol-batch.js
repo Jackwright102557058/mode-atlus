@@ -569,7 +569,7 @@
         if(e.target.closest('[data-ma-install]') && deferredPrompt){ deferredPrompt.prompt(); try{ await deferredPrompt.userChoice; }catch{} deferredPrompt=null; prompt.remove(); }
       });
     }
-    if('serviceWorker' in navigator && location.protocol !== 'file:'){
+    if(false && 'serviceWorker' in navigator && location.protocol !== 'file:'){
       
     // GitHub-safe reset: clear older service workers/caches so stale builds cannot trap the app on loading.
     try {

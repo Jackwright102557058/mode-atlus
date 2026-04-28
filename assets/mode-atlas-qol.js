@@ -247,7 +247,7 @@
   function installHiddenDevButton(){ if($('#maHiddenDevTrigger')) return; const btn=document.createElement('button'); btn.id='maHiddenDevTrigger'; btn.className='ma-hidden-dev-trigger'; btn.type='button'; btn.setAttribute('aria-label',''); btn.addEventListener('click', openDevMenu); document.body.appendChild(btn); }
 
   function registerPwa(){
-    if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    if(false && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
       
     // GitHub-safe reset: clear older service workers/caches so stale builds cannot trap the app on loading.
     try {
