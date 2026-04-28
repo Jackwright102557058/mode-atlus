@@ -608,12 +608,26 @@ async function hydrateFromCloud(force = false) {
 }
 
 
+function waitWithTimeout(promise, ms = 1400, label = 'cloud startup') {
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise((resolve) => setTimeout(() => {
+      try { setCloudState(false, label + ' timed out'); } catch {}
+      resolve(false);
+    }, ms))
+  ]);
+}
+
 async function beforePageLoad() {
-  await setupFirebase();
-  await authReady;
+  await waitWithTimeout(setupFirebase(), 1400, 'cloud setup');
+  await waitWithTimeout(authReady, 1400, 'auth check');
   if (currentUser) {
-    await hydrateFromCloud();
+    waitWithTimeout(hydrateFromCloud(), 2200, 'cloud hydrate').catch((error) => {
+      console.warn('Cloud hydrate continued in background and failed.', error);
+      try { setCloudState(false, error?.message || 'Cloud hydrate failed'); } catch {}
+    });
   }
+  return true;
 }
 
 async function signInWithGoogle() {

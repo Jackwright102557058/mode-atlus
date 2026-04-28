@@ -570,7 +570,17 @@
       });
     }
     if('serviceWorker' in navigator && location.protocol !== 'file:'){
-      navigator.serviceWorker.register('sw.js').catch(()=>{});
+      
+    // GitHub-safe reset: clear older service workers/caches so stale builds cannot trap the app on loading.
+    try {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(reg => reg.unregister())).catch(()=>{});
+      }
+      if (window.caches) {
+        caches.keys().then(keys => keys.filter(k => /^mode-atlas-/i.test(k)).forEach(k => caches.delete(k))).catch(()=>{});
+      }
+    } catch {}
+
     }
   }
 

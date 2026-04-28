@@ -1,6 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script id="maGithubSwCacheReset">
+(function(){
+  if (location.protocol === 'file:') return;
+  try {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs){ regs.forEach(function(reg){ reg.unregister(); }); }).catch(function(){});
+    }
+    if (window.caches) {
+      caches.keys().then(function(keys){ keys.filter(function(k){ return /^mode-atlas-/i.test(k); }).forEach(function(k){ caches.delete(k); }); }).catch(function(){});
+    }
+  } catch(e){}
+})();
+</script>
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Mode Atlas</title>
@@ -1853,7 +1867,7 @@ function updateTopProfileDot() {
 }
 
 try {
-  await import('./cloud-sync.js?v=2.9.0');
+  await import('./cloud-sync.js?v=2.9.1');
 
   if (window.KanaCloudSync) {
     window.KanaCloudSync.bindUi({

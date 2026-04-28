@@ -1,22 +1,21 @@
-const CACHE_NAME = 'mode-atlas-v2.9.0';
-const CORE = [
-  './','index.html','kana.html','default.html','reverse.html','test.html','wordbank.html',
-  'cloud-sync.js','firebase-config.js','site.webmanifest',
-  'assets/mode-atlas-qol.css','assets/mode-atlas-qol.js',
-  'assets/mode-atlas-qol-batch.js','assets/mode-atlas-stable-controls.js',
-  'assets/mode-atlas-about.js',
-  'assets/mode-atlas-auth-mobile-fix.js','assets/mode-atlas-auth-single-button.js','assets/mode-atlas-save-sync-ui.js','assets/mode-atlas-visit-flows.js',
-  'assets/mode-atlas-icon.svg','assets/favicon-32.png','assets/apple-touch-icon.png'
-];
+const CACHE_NAME = 'mode-atlas-v2.9.1-reset';
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE).catch(() => null)).then(() => self.skipWaiting()));
+  event.waitUntil(self.skipWaiting());
 });
 self.addEventListener('activate', event => {
-  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  event.waitUntil((async () => {
+    try {
+      const keys = await caches.keys();
+      await Promise.all(keys.filter(k => /^mode-atlas-/i.test(k)).map(k => caches.delete(k)));
+    } catch {}
+    try { await self.registration.unregister(); } catch {}
+    try {
+      const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      for (const client of clients) client.navigate(client.url);
+    } catch {}
+  })());
 });
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
-  event.respondWith(fetch(event.request).then(response => {
-    const clone = response.clone(); caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone)).catch(() => null); return response;
-  }).catch(() => caches.match(event.request).then(cached => cached || caches.match('index.html'))));
+  event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
 });

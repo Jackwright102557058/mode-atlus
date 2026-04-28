@@ -2,7 +2,7 @@
   if (window.__modeAtlasQolLoaded) return;
   window.__modeAtlasQolLoaded = true;
 
-  const APP_VERSION = '2.9.0';
+  const APP_VERSION = '2.9.1';
   const THEME_KEY = 'modeAtlasThemePreference';
   const LAST_PAGE_KEY = 'modeAtlasLastKanaPage';
   const DEV_PIN = '3522';
@@ -248,7 +248,17 @@
 
   function registerPwa(){
     if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-      navigator.serviceWorker.register('sw.js').catch(()=>{});
+      
+    // GitHub-safe reset: clear older service workers/caches so stale builds cannot trap the app on loading.
+    try {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(reg => reg.unregister())).catch(()=>{});
+      }
+      if (window.caches) {
+        caches.keys().then(keys => keys.filter(k => /^mode-atlas-/i.test(k)).forEach(k => caches.delete(k))).catch(()=>{});
+      }
+    } catch {}
+
     }
     let deferred=null;
     window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferred=e; addInstallButton(()=>{ deferred.prompt(); deferred=null; }); });
