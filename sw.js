@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mode-atlas-v2.9.4';
+const CACHE_NAME = 'mode-atlas-v2.9.5';
 self.addEventListener('install', event => {
   event.waitUntil(self.skipWaiting());
 });
