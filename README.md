@@ -1,1 +1,2 @@
-Kana Trainer
+Mode Atlas
+https://mode-atlas.app/
