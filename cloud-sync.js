@@ -3,6 +3,7 @@ let getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirec
 let getFirestore, doc, getDoc, setDoc;
 let firebaseModulesPromise = null;
 async function loadFirebaseModules() {
+  if (window.ModeAtlasEnv && window.ModeAtlasEnv.canUseFirebase === false) return false;
   if (location.protocol === 'file:') return false;
   if (!firebaseModulesPromise) {
     firebaseModulesPromise = Promise.all([
@@ -585,7 +586,7 @@ async function setupFirebase() {
   if (!modulesLoaded) {
     authResolved = true;
     resolveAuthReady?.();
-    setCloudState(false, location.protocol === 'file:' ? 'Cloud sync unavailable in local file mode' : 'Firebase modules unavailable');
+    setCloudState(false, (window.ModeAtlasEnv && window.ModeAtlasEnv.canUseFirebase === false) ? 'Cloud sync unavailable in this environment' : 'Firebase modules unavailable');
     emitStatus();
     return false;
   }

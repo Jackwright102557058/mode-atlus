@@ -864,17 +864,12 @@
   }
 
   function installWhatsNew(){
-    const version=(window.ModeAtlasEnv && window.ModeAtlasEnv.appVersion) || '2.11.2';
+    const version=(window.ModeAtlasEnv && window.ModeAtlasEnv.appVersion) || '2.11.4';
     const changes=[
-      'Cleaner grouped modifier settings.',
-      'Preset achievement progress toward 100 correct answers.',
-      'Mistake review after sessions.',
-      'Improved end-of-session actions.',
-      'Import preview before applying backups.',
-      'Speed Run mode.',
-      'Better empty states and app install guidance.',
-      'Cleaner profile, save, and app status information.',
-      'More polished account and save messages.'
+      'Cleaner install behaviour: the app now asks once and stays available from the profile menu.',
+      'Improved save and sync readiness.',
+      'More reliable app updates after a new release.',
+      'Small profile and status wording polish.'
     ];
     const signature = version + '::' + changes.join('|');
     const seenVersionKey = 'maWhatsNewSeenVersion';
@@ -929,17 +924,51 @@
 
   function installPwaPolish(){
     let deferredPrompt=null;
-    window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferredPrompt=e; showInstall(); });
+    const PROMPT_SEEN_KEY='modeAtlasInstallPromptSeen';
+    const PROMPT_DISMISSED_AT_KEY='modeAtlasInstallPromptDismissedAt';
+    function isStandalone(){
+      try { return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; } catch { return false; }
+    }
+    function hasSeenPrompt(){
+      try { return localStorage.getItem(PROMPT_SEEN_KEY) === '1'; } catch { return true; }
+    }
+    function markPromptSeen(){
+      try {
+        localStorage.setItem(PROMPT_SEEN_KEY, '1');
+        localStorage.setItem(PROMPT_DISMISSED_AT_KEY, String(Date.now()));
+      } catch {}
+    }
+    window.ModeAtlasInstall = window.ModeAtlasInstall || {};
+    window.ModeAtlasInstall.show = async function(){
+      if(deferredPrompt){
+        try { deferredPrompt.prompt(); await deferredPrompt.userChoice; } catch {}
+        deferredPrompt=null;
+        markPromptSeen();
+        $('#maInstallPrompt')?.remove();
+        return true;
+      }
+      const msg='To install Mode Atlas, use your browser menu or, on iPad, Share → Add to Home Screen.';
+      if(window.ModeAtlasToast) window.ModeAtlasToast(msg);
+      else alert(msg);
+      return false;
+    };
+    window.addEventListener('beforeinstallprompt', e=>{
+      e.preventDefault();
+      deferredPrompt=e;
+      window.ModeAtlasInstall.deferredPrompt=e;
+      if(!hasSeenPrompt() && !isStandalone()) showInstall();
+    });
+    window.addEventListener('appinstalled', ()=>{ markPromptSeen(); deferredPrompt=null; $('#maInstallPrompt')?.remove(); });
     function showInstall(){
-      if($('#maInstallPrompt') || !deferredPrompt) return;
+      if($('#maInstallPrompt') || !deferredPrompt || hasSeenPrompt() || isStandalone()) return;
       const prompt=document.createElement('div');
       prompt.id='maInstallPrompt';
       prompt.className='ma-install-prompt';
-      prompt.innerHTML='<div><b>Install Mode Atlas</b><span>Add it to your device for faster access and a full-screen study experience. On iPad, use Share → Add to Home Screen if the install button is not shown.</span></div><button type="button" data-ma-install>Install</button><button type="button" data-ma-install-close>Not now</button>';
+      prompt.innerHTML='<div><b>Install Mode Atlas</b><span>Add it to your device for faster access and a full-screen study experience. You can also install later from the profile menu.</span></div><button type="button" data-ma-install>Install</button><button type="button" data-ma-install-close>Not now</button>';
       document.body.appendChild(prompt);
       prompt.addEventListener('click', async e=>{
-        if(e.target.closest('[data-ma-install-close]')) prompt.remove();
-        if(e.target.closest('[data-ma-install]') && deferredPrompt){ deferredPrompt.prompt(); try{ await deferredPrompt.userChoice; }catch{} deferredPrompt=null; prompt.remove(); }
+        if(e.target.closest('[data-ma-install-close]')){ markPromptSeen(); prompt.remove(); }
+        if(e.target.closest('[data-ma-install]')){ await window.ModeAtlasInstall.show(); }
       });
     }
 
@@ -960,7 +989,7 @@
   if (window.__modeAtlasAboutLoaded) return;
   window.__modeAtlasAboutLoaded = true;
 
-  const APP_VERSION = (window.ModeAtlasEnv && window.ModeAtlasEnv.appVersion) || '2.11.2';
+  const APP_VERSION = (window.ModeAtlasEnv && window.ModeAtlasEnv.appVersion) || '2.11.4';
   const SAVE_SCHEMA_VERSION = '3';
   const BUILD_LABEL = 'Professional Polish Update';
   const BUILD_DATE = '2026-05-01';
@@ -1020,10 +1049,10 @@
   }
 
   const whatsNewItems = [
-    'Cleaner profile and account status information.',
-    'Clearer save, import, and backup wording.',
-    'Improved install guidance for faster access on your devices.',
-    'General polish across menus, update notes, and app status panels.'
+    'Cleaner install behaviour: the app asks once, then stays available from the profile menu.',
+    'Improved save and sync readiness.',
+    'More reliable update handling after new releases.',
+    'Small polish across profile, save, and status wording.'
   ];
 
   function ensureAboutModal(){
@@ -1165,7 +1194,7 @@
 })();
 (function(){
   'use strict';
-  const VERSION = (window.ModeAtlasEnv && window.ModeAtlasEnv.appVersion) || '2.11.2';
+  const VERSION = (window.ModeAtlasEnv && window.ModeAtlasEnv.appVersion) || '2.11.4';
   const HIRA = ['あ','い','う','え','お','か','き','く','け','こ','さ','し','す','せ','そ','た','ち','つ','て','と','な','に','ぬ','ね','の','は','ひ','ふ','へ','ほ','ま','み','む','め','も','や','ゆ','よ','ら','り','る','れ','ろ','わ','を','ん'];
   const KATA = ['ア','イ','ウ','エ','オ','カ','キ','ク','ケ','コ','サ','シ','ス','セ','ソ','タ','チ','ツ','テ','ト','ナ','ニ','ヌ','ネ','ノ','ハ','ヒ','フ','ヘ','ホ','マ','ミ','ム','メ','モ','ヤ','ユ','ヨ','ラ','リ','ル','レ','ロ','ワ','ヲ','ン'];
   const DAK = ['が','ぎ','ぐ','げ','ご','ざ','じ','ず','ぜ','ぞ','だ','ぢ','づ','で','ど','ば','び','ぶ','べ','ぼ','ぱ','ぴ','ぷ','ぺ','ぽ','ガ','ギ','グ','ゲ','ゴ','ザ','ジ','ズ','ゼ','ゾ','ダ','ヂ','ヅ','デ','ド','バ','ビ','ブ','ベ','ボ','パ','ピ','プ','ペ','ポ'];

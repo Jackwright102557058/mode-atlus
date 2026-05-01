@@ -1105,7 +1105,7 @@ sessionModalBackdrop.addEventListener("click", (e) => {
 
 function makeExportPayload() {
     return window.ModeAtlasTrainerCore.buildExportPayload({
-        version: "2.11.2",
+        version: "2.11.4",
         settings,
         stats,
         times,

@@ -151,7 +151,7 @@
     const cfg = config || {};
     const testResults = typeof cfg.loadResults === "function" ? cfg.loadResults() : (cfg.testResults || []);
     const payload = {
-      version: cfg.version || ((window.ModeAtlasEnv && window.ModeAtlasEnv.appVersion) || "2.11.2"),
+      version: cfg.version || ((window.ModeAtlasEnv && window.ModeAtlasEnv.appVersion) || "2.11.4"),
       exportedAt: new Date().toISOString(),
       settings: cfg.settings || {},
       stats: cfg.stats || {},

@@ -2,7 +2,7 @@
   if (window.__modeAtlasQolLoaded) return;
   window.__modeAtlasQolLoaded = true;
 
-  const APP_VERSION = (window.ModeAtlasEnv && window.ModeAtlasEnv.appVersion) || '2.11.2';
+  const APP_VERSION = (window.ModeAtlasEnv && window.ModeAtlasEnv.appVersion) || '2.11.4';
   const THEME_KEY = 'modeAtlasThemePreference';
   const LAST_PAGE_KEY = 'modeAtlasLastKanaPage';
   const DEV_PIN = '3522';
@@ -235,8 +235,15 @@
   function installHiddenDevButton(){ if(!canUseDevTools()) return; if($('#maHiddenDevTrigger')) return; const btn=document.createElement('button'); btn.id='maHiddenDevTrigger'; btn.className='ma-hidden-dev-trigger'; btn.type='button'; btn.setAttribute('aria-label',''); btn.addEventListener('click', openDevMenu); document.body.appendChild(btn); }
 
   function registerPwa(){
-    let deferred=null;
-    window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferred=e; addInstallButton(()=>{ deferred.prompt(); deferred=null; }); });
+    const handler=()=>{
+      if(window.ModeAtlasInstall && typeof window.ModeAtlasInstall.show === 'function') return window.ModeAtlasInstall.show();
+      const msg='To install Mode Atlas, use your browser menu or, on iPad, Share → Add to Home Screen.';
+      if(window.ModeAtlasToast) window.ModeAtlasToast(msg);
+      else alert(msg);
+    };
+    addInstallButton(handler);
+    window.addEventListener('beforeinstallprompt', ()=>setTimeout(()=>addInstallButton(handler), 100));
+    window.addEventListener('modeAtlasPwaReady', ()=>setTimeout(()=>addInstallButton(handler), 100));
   }
   function addInstallButton(onClick){
     $all('.profile-drawer,#profileDrawer,.profile-overlay aside').forEach(drawer=>{ if($('[data-ma-install]',drawer)) return; const tools=$('.ma-tools-panel .ma-qol-grid',drawer); if(!tools)return; const btn=document.createElement('button'); btn.className=buttonClassFor($('.drawer-actions,.profile-actions',drawer)); btn.type='button'; btn.dataset.maInstall='1'; btn.textContent='Install app'; btn.addEventListener('click', onClick); tools.appendChild(btn); });
