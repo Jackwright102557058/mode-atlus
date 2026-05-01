@@ -1,0 +1,199 @@
+(function(){
+  "use strict";
+
+  function saveTrainerState(config){
+    const cfg = config || {};
+    const prefix = cfg.prefix || "";
+    const section = cfg.section || "reading";
+    const keyMap = cfg.keys || {};
+    const keyFor = (name, fallback) => keyMap[name] || fallback;
+    const highScoreKey = cfg.highScoreKey || keyFor("highScore", prefix ? `${prefix}HighScore` : "highScore");
+    try { window.KanaCloudSync?.markSectionUpdated?.(section); } catch {}
+    const writeJson = (key, value) => {
+      if (!window.ModeAtlasStorage.setJSON(key, value)) console.warn("Mode Atlas save failed", key);
+    };
+    writeJson(keyFor("settings", prefix ? `${prefix}Settings` : "settings"), cfg.settings || {});
+    writeJson(keyFor("stats", prefix ? `${prefix}CharStats` : "charStats"), cfg.stats || {});
+    writeJson(keyFor("times", prefix ? `${prefix}CharTimes` : "charTimes"), cfg.times || {});
+    writeJson(keyFor("srs", prefix ? `${prefix}CharSrs` : "charSrs"), cfg.srs || {});
+    writeJson(keyFor("scoreHistory", prefix ? `${prefix}ScoreHistory` : "scoreHistory"), cfg.scoreHistory || {});
+    writeJson(keyFor("dailyChallengeHistory", prefix ? `${prefix}DailyChallengeHistory` : "dailyChallengeHistory"), cfg.dailyChallengeHistory || {});
+    window.ModeAtlasStorage.set(highScoreKey, String(Number(cfg.highScore || 0)));
+    try { window.KanaCloudSync?.scheduleSync?.(); } catch {}
+  }
+
+  function buildDailySequence(options){
+    const cfg = options || {};
+    const map = cfg.poolMap || window.DAILY_CHALLENGE_CHAR_MAP || {};
+    const pool = Object.keys(map);
+    const count = Number(cfg.count || 20);
+    const seed = String(cfg.seed || `daily:${cfg.dateKey || ""}`);
+    const rng = typeof cfg.rngFactory === "function"
+      ? cfg.rngFactory(seed)
+      : (typeof window.createSeededRng === "function" ? window.createSeededRng(seed) : Math.random);
+    const sequence = [];
+    if (!pool.length) return sequence;
+    for (let i = 0; i < count; i++) sequence.push(pool[Math.floor(rng() * pool.length)]);
+    return sequence;
+  }
+
+  function normalizeTestResults(mode, list){
+    return window.ModeAtlasResultsStorage?.normalize
+      ? window.ModeAtlasResultsStorage.normalize(list, mode)
+      : (Array.isArray(list) ? list : []);
+  }
+
+  function persistTestResults(mode, list){
+    return window.ModeAtlasResultsStorage?.persist
+      ? window.ModeAtlasResultsStorage.persist(mode, list)
+      : list;
+  }
+
+  function buildTestResult(config){
+    const cfg = config || {};
+    const mode = cfg.mode || "reading";
+    const now = Date.now();
+    const total = Number(cfg.total || 0);
+    const correct = Number(cfg.correct || 0);
+    const titleMode = mode === "writing" ? "Writing" : "Reading";
+    const result = {
+      id: `${mode}-test-${now}`,
+      type: "test",
+      title: `${titleMode} Test #${new Date().toLocaleDateString()}`,
+      mode,
+      date: new Date().toISOString().slice(0, 10),
+      startedAt: cfg.startedAt || new Date(Number(cfg.startTime || now)).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+      overallScore: total ? Math.round((correct / total) * 100) : 0,
+      correct,
+      wrong: Number(cfg.wrong || 0),
+      total,
+      durationMs: Number(cfg.durationMs || 0),
+      avgMs: Number(cfg.avgMs || 0),
+      dakuten: !!cfg.dakuten,
+      yoon: !!cfg.yoon,
+      extendedKatakana: !!cfg.extendedKatakana,
+      kanaAsked: Number(cfg.kanaAsked || 0),
+      notes: cfg.notes || `Full shuffled ${mode} test run.`,
+      breakdown: cfg.breakdown || {},
+      kana: cfg.kana || {}
+    };
+    if (mode === "writing") {
+      result.inputMode = cfg.inputMode || "buttons";
+      result.inputVariant = cfg.inputVariant || "4";
+      result.buttonLayout = cfg.buttonLayout ?? null;
+      result.keyboardLayout = cfg.keyboardLayout || "";
+    }
+    return result;
+  }
+
+  function renderStatCards(pairs){
+    return (pairs || []).map(([label, value]) => `
+        <div class="stat-card">
+            <div class="label">${label}</div>
+            <div class="value">${value}</div>
+        </div>
+    `).join("");
+  }
+
+  function downloadJson(filename, payload){
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+
+  function saveTestModeResult(config){
+    const cfg = config || {};
+    const mode = cfg.mode || "reading";
+    const sessionStats = cfg.sessionStats || {};
+    const testSequence = Array.isArray(cfg.testSequence) ? cfg.testSequence : [];
+    const settings = cfg.settings || {};
+    const durationMs = Math.max(0, Date.now() - Number(cfg.testStartTime || Date.now()));
+    const correct = Number(cfg.correct || 0);
+    const wrong = Number(cfg.wrong || 0);
+    const total = Number(sessionStats.answered || (correct + wrong));
+    const result = buildTestResult({
+      mode,
+      startTime: cfg.testStartTime,
+      correct,
+      wrong,
+      total,
+      durationMs,
+      avgMs: Array.isArray(sessionStats.timings) && sessionStats.timings.length
+        ? Math.round(sessionStats.timings.reduce((sum, value) => sum + Number(value || 0), 0) / sessionStats.timings.length)
+        : 0,
+      dakuten: settings.dakuten,
+      yoon: settings.yoon,
+      extendedKatakana: settings.extendedKatakana,
+      kanaAsked: testSequence.length,
+      notes: cfg.notes || `Full shuffled ${mode} test run.`,
+      breakdown: typeof cfg.buildBreakdown === "function" ? cfg.buildBreakdown() : {},
+      kana: typeof cfg.buildKanaResults === "function" ? cfg.buildKanaResults() : {},
+      inputMode: cfg.inputMode,
+      inputVariant: cfg.inputVariant,
+      buttonLayout: cfg.buttonLayout,
+      keyboardLayout: cfg.keyboardLayout
+    });
+    const list = typeof cfg.loadResults === "function" ? cfg.loadResults() : [];
+    list.unshift(result);
+    if (typeof cfg.persistResults === "function") cfg.persistResults(list);
+    else persistTestResults(mode, list);
+    return result;
+  }
+
+  function buildExportPayload(config){
+    const cfg = config || {};
+    const testResults = typeof cfg.loadResults === "function" ? cfg.loadResults() : (cfg.testResults || []);
+    const payload = {
+      version: cfg.version || ((window.ModeAtlasEnv && window.ModeAtlasEnv.appVersion) || "2.11.4"),
+      exportedAt: new Date().toISOString(),
+      settings: cfg.settings || {},
+      stats: cfg.stats || {},
+      times: cfg.times || {},
+      srs: cfg.srs || {},
+      scoreHistory: cfg.scoreHistory || {},
+      dailyChallengeHistory: cfg.dailyChallengeHistory || {},
+      highScore: Number(cfg.highScore || 0),
+      testModeResults: testResults,
+      testModeResultsUpdatedAt: cfg.updatedAt || ""
+    };
+    if (cfg.includeReadingAliases) {
+      payload.readingTestModeResults = testResults;
+      payload.readingTestModeResultsUpdatedAt = cfg.updatedAt || "";
+    }
+    if (cfg.extra && typeof cfg.extra === "object") Object.assign(payload, cfg.extra);
+    return payload;
+  }
+
+  async function copyJsonPayload(payload, options){
+    const opts = options || {};
+    const text = JSON.stringify(payload, null, 2);
+    try {
+      await navigator.clipboard.writeText(text);
+      alert(opts.successMessage || "Save data copied to clipboard.");
+    } catch {
+      if (opts.textarea) opts.textarea.value = text;
+      if (opts.modal) opts.modal.classList.add("open");
+      alert(opts.fallbackMessage || "Clipboard copy was not available. Your save data has been placed in the import box so you can copy it manually.");
+    }
+  }
+
+  window.ModeAtlasTrainerCore = Object.assign(window.ModeAtlasTrainerCore || {}, {
+    saveTrainerState,
+    buildDailySequence,
+    normalizeTestResults,
+    persistTestResults,
+    buildTestResult,
+    renderStatCards,
+    saveTestModeResult,
+    buildExportPayload,
+    downloadJson,
+    copyJsonPayload
+  });
+})();
