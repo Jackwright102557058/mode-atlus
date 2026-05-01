@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="/assets/app/mode-atlas-head-bootstrap.js"></script>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Word Bank • Mode Atlas</title>
+  <link rel="canonical" href="https://mode-atlas.app/wordbank/" />
+
+<link rel="icon" href="/assets/mode-atlas-icon.svg" type="image/svg+xml" />
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png" />
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
+<meta name="theme-color" content="#121a2b" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Mode Atlas" />
+<meta name="application-name" content="Mode Atlas" />
+<meta name="description" content="Capture Japanese words, meanings, notes, and favourites." />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Mode Atlas" />
+<meta property="og:title" content="Word Bank • Mode Atlas" />
+<meta property="og:description" content="Capture Japanese words, meanings, notes, and favourites." />
+<meta property="og:url" content="https://mode-atlas.app/wordbank/" />
+  <meta property="og:image" content="https://mode-atlas.app/assets/social-preview.svg" />
+<meta name="twitter:card" content="summary" />
+
+  <link rel="stylesheet" href="/assets/css/mode-atlas-wordbank-page.css">
+<link rel="stylesheet" href="/assets/css/mode-atlas-page-shared.css">
+<link rel="stylesheet" href="/assets/css/mode-atlas-qol.css" />
+<script defer src="/assets/app/mode-atlas-qol.js"></script>
+<script src="/assets/app/mode-atlas-storage.js"></script>
+</head>
+<body><script src="/assets/app/mode-atlas-early-loader.js"></script><div class="ma-loading-screen" id="maLoadingScreen" aria-live="polite"><div class="ma-loading-card"><div class="ma-loading-head"><div class="ma-loading-mark">学</div><div><div class="ma-loading-title">Mode Atlas</div><div class="ma-loading-sub">Preparing your study space…</div></div></div><div class="ma-skeleton"></div><div class="ma-skeleton"></div><div class="ma-skeleton short"></div></div></div>
+
+  <div class="drawer-backdrop" id="profileBackdrop"></div>
+  <aside class="profile-drawer" id="profileDrawer" aria-hidden="true">
+    <div class="drawer-head">
+      <div class="drawer-title">Profile</div>
+      <button class="drawer-close" id="profileCloseBtn" type="button">Close</button>
+    </div>
+    <div class="drawer-user">
+      <img class="drawer-avatar" id="profileAvatar" alt="" />
+      <div>
+        <div class="drawer-name" id="profileName">Guest</div>
+        <div class="drawer-email" id="profileEmail">Not signed in</div>
+      </div>
+    </div>
+    <div class="drawer-status" id="profileStatus">Sign in with Google to sync your Word Bank across devices.</div>
+    <div class="drawer-actions">
+      <button class="drawer-action primary" id="profileSignInBtn" data-profile-sign-in type="button">Sign in</button>
+      <button class="drawer-action" id="profileSignOutBtn" data-profile-sign-out type="button" style="display:none;">Sign out</button>
+      <a class="drawer-action" href="/">Mode Atlas</a>
+      <a class="drawer-action" href="/kana/">Kana Trainer</a>
+    </div>
+  </aside>
+
+  <div class="wrap">
+    <nav class="branch-nav" aria-label="Word Bank navigation">
+      <a class="branch-brand" href="/" aria-label="Back to Mode Atlas">
+        <div class="branch-mark">語</div>
+        <div class="branch-meta">
+          <div class="branch-kicker">Mode Atlas</div>
+          <div class="branch-name">Word Bank</div>
+        </div>
+      </a>
+
+      <div class="branch-links">
+        <a class="branch-link atlas" href="/">Atlas</a>
+        <a class="branch-link kana" href="/kana/">Kana Trainer</a>
+        <a class="branch-link words active" href="/wordbank/">Word Bank</a>
+        <button class="profile-trigger" id="profileOpenBtn" type="button" onclick="window.ModeAtlasWordProfile && window.ModeAtlasWordProfile.open()">Profile <span class="profile-dot" id="topProfileDot">M</span></button>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div class="topline">
+        <div>
+          <div class="hero-titleline">Collection branch</div>
+          <h1>Word Bank</h1>
+          <p class="subtitle">A quiet place for the words worth keeping.</p>
+        </div>
+      </div>
+      <div class="pill-row">
+        <div class="pill">Kana · Romaji · Meaning</div>
+        <div class="pill">Favourites</div>
+        <div class="pill">Search & sort</div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="label">Total Words</div><div class="value" id="statTotal">0</div></div>
+        <div class="stat"><div class="label">With English</div><div class="value" id="statEnglish">0</div></div>
+        <div class="stat"><div class="label">Favourites</div><div class="value" id="statFavorites">0</div></div>
+        <div class="stat"><div class="label">Missing English</div><div class="value" id="statMissing">0</div></div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="panel">
+        <div class="panel-inner">
+          <h2>Add New Word</h2>
+          <p>Type a word in kana and press Enter. The app will save it immediately and generate romaji for you.</p>
+
+          <label for="kanaInput">Kana Word</label>
+          <input id="kanaInput" type="text" name="kana_word" placeholder="e.g. ねこ / コーヒー" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" inputmode="text" />
+          <div class="hint">Works with hiragana, katakana, small kana, っ / ッ, and ー. Duplicate kana words are blocked.</div>
+
+          <div class="btn-row">
+            <button class="btn-primary" id="addWordBtn" type="button">Add Word</button>
+            <button class="btn-secondary" id="clearInputBtn" type="button">Clear</button>
+          </div>
+
+          <div class="status" id="statusMsg"></div>
+
+          <hr style="border: none; border-top: 1px solid rgba(148,163,184,0.12); margin: 20px 0;" />
+
+          <h2>Tools</h2>
+          <p>Export a backup, import an older bank, or clear the collection.</p>
+
+          <div class="btn-row">
+            <button class="btn-blue" id="exportBtn" type="button">Export JSON</button>
+            <label class="button-like btn-secondary" for="importFile">Import JSON</label>
+            <button class="btn-danger" id="clearAllBtn" type="button">Clear All Words</button>
+          </div>
+          <input id="importFile" type="file" accept="application/json" style="display:none" />
+
+          <div class="footer-note">
+            Imported entries merge with your current bank. Matching kana keep the newest version.
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-inner">
+          <h2>Saved Words</h2>
+          <p>Search through your bank, sort the list, and update English or notes whenever you want.</p>
+
+          <div class="toolbar">
+            <div class="field">
+              <label for="searchInput">Search</label>
+              <input id="searchInput" type="text" name="wordbank_search" placeholder="Search kana, romaji, English, or notes" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" />
+            </div>
+            <div class="field">
+              <label for="sortSelect">Sort</label>
+              <select id="sortSelect">
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="kanaAZ">Kana A-Z</option>
+                <option value="kanaZA">Kana Z-A</option>
+                <option value="romajiAZ">Romaji A-Z</option>
+                <option value="englishAZ">English A-Z</option>
+                <option value="updated">Recently updated</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="filterSelect">Filter</label>
+              <select id="filterSelect">
+                <option value="all">All entries</option>
+                <option value="favorites">Favourites only</option>
+                <option value="missingEnglish">Missing English</option>
+                <option value="withNotes">With notes</option>
+                <option value="hiragana">Hiragana only</option>
+                <option value="katakana">Katakana only</option>
+                <option value="mixed">Mixed / other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="entries" id="entries"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+
+  <script src="/assets/ui/mode-atlas-profile-drawer-bindings.js"></script>
+
+  <script src="/firebase-config.js"></script>
+<script src="/cloud-sync.js"></script>
+<script src="/assets/pages/mode-atlas-wordbank-page.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/assets/ui/mode-atlas-verified-preset-confusable.js"></script>
+<script src="/assets/app/mode-atlas-app-runtime.js"></script>
+<script src="/assets/app/mode-atlas-sounds.js"></script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-const MODE_ATLAS_VERSION = '2.11.4';
+const MODE_ATLAS_VERSION = '2.11.5';
 const CACHE_NAME = 'mode-atlas-v' + MODE_ATLAS_VERSION;
 
 const CORE_ASSETS = [
@@ -47,12 +47,16 @@ const CORE_ASSETS = [
   './assets/ui/mode-atlas-study-nav-hidden.js',
   './assets/ui/mode-atlas-verified-preset-confusable.js',
   './cloud-sync.js',
+  './reading/',
   './default.html',
   './firebase-config.js',
   './index.html',
+  './kana/',
   './kana.html',
+  './writing/',
   './reverse.html',
   './site.webmanifest',
+  './results/',
   './test.html',
   './wordbank.html'
 ];

@@ -1,7 +1,7 @@
 (function(){
   if(window.__modeAtlasVerifiedPresetConfusableFix) return;
   window.__modeAtlasVerifiedPresetConfusableFix=true;
-  var page=(location.pathname.split('/').pop()||'index.html').toLowerCase();
+  var page=(window.ModeAtlasPageName ? window.ModeAtlasPageName() : (location.pathname.split('/').pop() || 'index.html')).toLowerCase();
   var isTrainer=page==='default.html'||page==='reverse.html';
   var settingsKey=page==='reverse.html'?'reverseSettings':'settings';
   var confKey='modeAtlasConfusableMode';
@@ -103,7 +103,7 @@
     }
   }
   if(page==='kana.html'){
-    $$('a[href*="confusable=1"],[data-ma-confusable-link]').forEach(function(a){a.setAttribute('href','default.html?confusable=1');a.addEventListener('click',function(){window.ModeAtlasStorage.set(confKey,'1');window.ModeAtlasStorage.remove(presetKey)},true)});
+    $$('a[href*="confusable=1"],[data-ma-confusable-link]').forEach(function(a){a.setAttribute('href','/reading/?confusable=1');a.addEventListener('click',function(){window.ModeAtlasStorage.set(confKey,'1');window.ModeAtlasStorage.remove(presetKey)},true)});
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',install); else install();
   window.addEventListener('pageshow',function(){setTimeout(install,50)});

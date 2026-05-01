@@ -1,10 +1,10 @@
 {
-  "id": "./",
+  "id": "/",
   "name": "Mode Atlas",
   "short_name": "Mode Atlas",
   "description": "A focused Japanese study ecosystem for kana recognition, recall, progress tracking, and vocabulary review.",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "display_override": [
     "standalone",
@@ -21,19 +21,19 @@
   "lang": "en-AU",
   "icons": [
     {
-      "src": "assets/android-chrome-512.png",
+      "src": "/assets/android-chrome-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "assets/apple-touch-icon.png",
+      "src": "/assets/apple-touch-icon.png",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "assets/favicon-32.png",
+      "src": "/assets/favicon-32.png",
       "sizes": "32x32",
       "type": "image/png",
       "purpose": "any"
@@ -43,22 +43,22 @@
     {
       "name": "Kana Trainer",
       "short_name": "Kana",
-      "url": "./kana.html"
+      "url": "/kana/"
     },
     {
       "name": "Reading Practice",
       "short_name": "Reading",
-      "url": "./default.html"
+      "url": "/reading/"
     },
     {
       "name": "Writing Practice",
       "short_name": "Writing",
-      "url": "./reverse.html"
+      "url": "/writing/"
     },
     {
       "name": "Results",
       "short_name": "Results",
-      "url": "./test.html"
+      "url": "/results/"
     }
   ]
 }

@@ -6,7 +6,7 @@
   const THEME_KEY = 'modeAtlasThemePreference';
   const LAST_PAGE_KEY = 'modeAtlasLastKanaPage';
   const DEV_PIN = '3522';
-  const PAGE = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+  const PAGE = (window.ModeAtlasPageName ? window.ModeAtlasPageName() : (location.pathname.split('/').pop() || 'index.html')).toLowerCase();
   function canUseDevTools(){ return !!((window.ModeAtlasEnv && window.ModeAtlasEnv.allowDevTools) || sessionStorage.getItem('modeAtlasDevTools') === '1' || localStorage.getItem('modeAtlasDevTools') === '1'); }
 
   function $(sel, root=document){ return root.querySelector(sel); }
@@ -169,7 +169,7 @@
       '<div class="ma-kana-stat"><div class="label">Review next</div><div class="value">' + reviewText + '</div><div class="hint">weakest tracked kana</div></div>'+
       '<div class="ma-kana-stat"><div class="label">Mastery map</div><div class="value">'+Math.max(s.readingKnown,s.writingKnown)+'/104</div><div class="hint">kana with saved history</div></div>'+
       '</div><div class="ma-kana-plan"><div><div class="label">Recommended flow</div><strong>Review → Practice → Test</strong><span>Start with weak kana, then complete a focused Reading or Writing session before checking results.</span></div><div><div class="label">Smart review</div><strong>'+(reviewText==='—'?'Build more history':reviewText)+'</strong><span>'+(reviewText==='—'?'Finish a few sessions to unlock stronger recommendations.':'Prioritise these kana first in your next session.')+'</span></div></div>'+
-      '<div class="ma-action-row"><a class="primary" href="'+nextHref+'">Continue where you left off</a><a class="reading" href="default.html">Reading Practice</a><a class="writing" href="reverse.html">Writing Practice</a><a href="test.html">Results</a></div>';
+      '<div class="ma-action-row"><a class="primary" href="'+nextHref+'">Continue where you left off</a><a class="reading" href="/reading/">Reading Practice</a><a class="writing" href="/writing/">Writing Practice</a><a href="/results/">Results</a></div>';
     if(hero && hero.parentElement) hero.insertAdjacentElement('afterend', panel);
     const footer=$('.footer-note'); if(footer) footer.textContent='Kana Trainer dashboard reads from Reading, Writing, Results, and daily review progress.';
     updateExistingKanaNumbers(s);
@@ -180,7 +180,7 @@
     set('readingToughest', s.readingWorst); set('readingStrongest', s.readingBest); set('writingToughest', s.writingWorst); set('writingStrongest', s.writingBest);
   }
 
-  function rememberKanaPage(){ if(['default.html','reverse.html','test.html'].includes(PAGE)) localStorage.setItem(LAST_PAGE_KEY, PAGE); }
+  function rememberKanaPage(){ if(['default.html','reverse.html','test.html'].includes(PAGE)){ const map={ 'default.html':'/reading/', 'reverse.html':'/writing/', 'test.html':'/results/' }; localStorage.setItem(LAST_PAGE_KEY, map[PAGE] || '/reading/'); } }
   rememberKanaPage();
 
   function addSessionPreview(){
@@ -273,7 +273,7 @@
   function $all(sel, root=document){ return Array.from(root.querySelectorAll(sel)); }
   if (window.__modeAtlasQolContinuationLoaded) return;
   window.__modeAtlasQolContinuationLoaded = true;
-  const PAGE = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+  const PAGE = (window.ModeAtlasPageName ? window.ModeAtlasPageName() : (location.pathname.split('/').pop() || 'index.html')).toLowerCase();
   const $ = (s,r=document)=>r.querySelector(s);
   const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
   const readJSON=(k,f)=>{try{const raw=localStorage.getItem(k);return raw?JSON.parse(raw):f;}catch{return f;}};
@@ -337,7 +337,7 @@
 (function ModeAtlasProfessionalPatch(){
   if (window.__modeAtlasProfessionalPatchLoaded) return;
   window.__modeAtlasProfessionalPatchLoaded = true;
-  const PAGE=(location.pathname.split('/').pop()||'index.html').toLowerCase();
+  const PAGE=(window.ModeAtlasPageName ? window.ModeAtlasPageName() : (location.pathname.split('/').pop() || 'index.html')).toLowerCase();
   const $=(s,r=document)=>r.querySelector(s);
   const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
   const $all=$$;
@@ -351,10 +351,10 @@
   const EXT='ヴファフィフェフォウィウェウォティディトゥドゥチェシェジェ'.match(/.{1,2}/gu)||[];
   const CONFUSABLE=['シ','ツ','ソ','ン','ぬ','め','れ','わ','ね','ク','ケ','タ','ナ','メ'];
   const PRESETS=[
-    {id:'starter',name:'Starter',desc:'A-row with hints',chars:AROW,href:'default.html?starter=starter'},
-    {id:'intermediate',name:'Intermediate',desc:'All Hiragana, no hints',chars:HIRA,href:'default.html?starter=intermediate'},
-    {id:'advanced',name:'Advanced',desc:'Hiragana + Katakana + Dakuten',chars:[...HIRA,...KATA,...DAK],href:'default.html?starter=advanced'},
-    {id:'pro',name:'Pro',desc:'Everything enabled',chars:[...HIRA,...KATA,...DAK,...YOON,...EXT],href:'default.html?starter=pro'}
+    {id:'starter',name:'Starter',desc:'A-row with hints',chars:AROW,href:'/reading/?starter=starter'},
+    {id:'intermediate',name:'Intermediate',desc:'All Hiragana, no hints',chars:HIRA,href:'/reading/?starter=intermediate'},
+    {id:'advanced',name:'Advanced',desc:'Hiragana + Katakana + Dakuten',chars:[...HIRA,...KATA,...DAK],href:'/reading/?starter=advanced'},
+    {id:'pro',name:'Pro',desc:'Everything enabled',chars:[...HIRA,...KATA,...DAK,...YOON,...EXT],href:'/reading/?starter=pro'}
   ];
   function icon(name){return ({speed:'Speed',mastery:'Mastery',review:'Review',warning:'Focus',practice:'Practice',test:'Test'}[name]||'');}
   function statObj(key){const v=readJSON(key,{});return v&&typeof v==='object'&&!Array.isArray(v)?v:{};}
@@ -526,7 +526,7 @@
       '<div class="ma-mastery-hero"><div><span>Current focus</span><strong>'+nextGoal+'</strong><small>'+(weak.length?'Suggested review: '+weak.map(x=>x.ch).join(' · '):'Complete more sessions to unlock personalised review suggestions.')+'</small></div><div><span>Average recognition</span><strong>'+(average?formatMs(average):'More data needed')+'</strong><small>Only kana with saved timing history are included.</small></div></div>'+ 
       '<div class="ma-speed-grid"><div class="ma-speed-card"><span class="label">Goal pace</span><strong>'+fast+'</strong><small>kana under 2.0s</small><div class="ma-meter"><i style="width:'+goalPct+'%"></i></div></div><div class="ma-speed-card"><span class="label">Fluent pace</span><strong>'+fluent+'</strong><small>kana under 1.0s</small><div class="ma-meter"><i style="width:'+fluentPct+'%"></i></div></div><div class="ma-speed-card"><span class="label">Mastered</span><strong>'+counts.Mastered+'</strong><small>accurate, repeated, and near target speed</small><div class="ma-meter"><i style="width:'+masteredPct+'%"></i></div></div><div class="ma-speed-card"><span class="label">Needs attention</span><strong>'+(counts.Learning+counts.Reviewing)+'</strong><small>'+counts.Reviewing+' reviewing · '+counts.Learning+' learning</small></div></div>'+ 
       '<div class="ma-mastery-breakdown"><div><b>New</b><span>'+counts.New+' kana have not been practised yet.</span></div><div><b>Learning</b><span>'+counts.Learning+' kana are still building accuracy or attempts.</span></div><div><b>Reviewing</b><span>'+counts.Reviewing+' kana are mostly correct but need more reliable reps.</span></div><div><b>Mastered</b><span>'+counts.Mastered+' kana are accurate and near target speed.</span></div></div>'+ 
-      '<div class="ma-practice-actions"><a class="ma-action-card reading" href="default.html?focusWeak=1" data-ma-weak-review><strong>Review weakest kana</strong><span>'+(weak.length?weak.map(x=>x.ch).join(' · '):'Build more history to unlock this')+'</span></a></div>';
+      '<div class="ma-practice-actions"><a class="ma-action-card reading" href="/reading/?focusWeak=1" data-ma-weak-review><strong>Review weakest kana</strong><span>'+(weak.length?weak.map(x=>x.ch).join(' · '):'Build more history to unlock this')+'</span></a></div>';
     afterEl.insertAdjacentElement('afterend',panel);
   }
 
@@ -574,7 +574,7 @@
 (function ModeAtlasVerifiedRepair(){
   if(window.__modeAtlasVerifiedRepair) return;
   window.__modeAtlasVerifiedRepair=true;
-  const PAGE=(location.pathname.split('/').pop()||'index.html').toLowerCase();
+  const PAGE=(window.ModeAtlasPageName ? window.ModeAtlasPageName() : (location.pathname.split('/').pop() || 'index.html')).toLowerCase();
   const $=(sel,root=document)=>root.querySelector(sel);
   const $$=(sel,root=document)=>Array.from(root.querySelectorAll(sel));
   const readJSON=(k,f)=>{try{const raw=localStorage.getItem(k);return raw?JSON.parse(raw):f;}catch{return f;}};

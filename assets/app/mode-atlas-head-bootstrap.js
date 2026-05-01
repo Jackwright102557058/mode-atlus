@@ -3,7 +3,7 @@
   if (window.__modeAtlasHeadBootstrapLoaded) return;
   window.__modeAtlasHeadBootstrapLoaded = true;
 
-  var APP_VERSION = '2.11.4';
+  var APP_VERSION = '2.11.5';
   var protocol = location.protocol;
   var host = location.hostname;
   var search = location.search || '';
@@ -18,6 +18,22 @@
   var canUsePwa = isSupportedHost && isSecureLike && ('serviceWorker' in navigator) && search.indexOf('sw=0') === -1;
   var canUseFirebase = isSupportedHost;
   var canUseModules = isSupportedHost;
+
+
+  function getPageName(){
+    var path = (location.pathname || '/').replace(/\/+$/, '/');
+
+    if (path === '/' || /\/index\.html$/i.test(path)) return 'index.html';
+    if (/\/kana\/?$/i.test(path) || /\/kana\/index\.html$/i.test(path)) return 'kana.html';
+    if (/\/reading\/?$/i.test(path) || /\/reading\/index\.html$/i.test(path) || /\/default\.html$/i.test(path)) return 'default.html';
+    if (/\/writing\/?$/i.test(path) || /\/writing\/index\.html$/i.test(path) || /\/reverse\.html$/i.test(path)) return 'reverse.html';
+    if (/\/results\/?$/i.test(path) || /\/results\/index\.html$/i.test(path) || /\/test\.html$/i.test(path)) return 'test.html';
+    if (/\/wordbank\/?$/i.test(path) || /\/wordbank\/index\.html$/i.test(path)) return 'wordbank.html';
+
+    return (path.split('/').filter(Boolean).pop() || 'index.html').toLowerCase();
+  }
+
+  window.ModeAtlasPageName = getPageName;
 
   function safeStorageGet(key){
     try { return localStorage.getItem(key); } catch(e) { return null; }
@@ -38,7 +54,7 @@
     canUseFirebase: canUseFirebase,
     canUseModules: canUseModules,
     allowDevTools: (isLocalServer || search.indexOf('dev=1') !== -1 || safeStorageGet('modeAtlasDevTools') === '1'),
-    baseUrl: new URL('.', document.baseURI).href,
+    baseUrl: location.origin + '/',
     loadModule: function(src, opts){
       if (!canUseModules || !src) return null;
       var script = document.createElement('script');
@@ -65,7 +81,7 @@
       if (document.querySelector('link[rel="manifest"]')) return;
       var link = document.createElement('link');
       link.rel = 'manifest';
-      link.href = new URL('site.webmanifest', document.baseURI).href;
+      link.href = '/site.webmanifest';
       document.head.appendChild(link);
     } catch(e) {}
   }
@@ -74,8 +90,8 @@
     if (!canUsePwa) return;
     onReady(function(){
       try {
-        var swUrl = new URL('sw.js', document.baseURI).href;
-        navigator.serviceWorker.register(swUrl, { scope: new URL('./', document.baseURI).pathname })
+        var swUrl = '/sw.js';
+        navigator.serviceWorker.register(swUrl, { scope: '/' })
           .then(function(reg){
             window.ModeAtlasPwa = window.ModeAtlasPwa || {};
             window.ModeAtlasPwa.registration = reg;

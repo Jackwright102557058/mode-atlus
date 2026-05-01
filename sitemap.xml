@@ -1,21 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://mode-atlas.app/</loc>
-  </url>
-  <url>
-    <loc>https://mode-atlas.app/kana.html</loc>
-  </url>
-  <url>
-    <loc>https://mode-atlas.app/default.html</loc>
-  </url>
-  <url>
-    <loc>https://mode-atlas.app/reverse.html</loc>
-  </url>
-  <url>
-    <loc>https://mode-atlas.app/test.html</loc>
-  </url>
-  <url>
-    <loc>https://mode-atlas.app/wordbank.html</loc>
-  </url>
+  <url><loc>https://mode-atlas.app/</loc></url>
+  <url><loc>https://mode-atlas.app/kana/</loc></url>
+  <url><loc>https://mode-atlas.app/reading/</loc></url>
+  <url><loc>https://mode-atlas.app/writing/</loc></url>
+  <url><loc>https://mode-atlas.app/results/</loc></url>
+  <url><loc>https://mode-atlas.app/wordbank/</loc></url>
 </urlset>
