@@ -11,9 +11,12 @@
   var isLocalhost = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(host || '');
   var isLocalServer = isLocalhost && (protocol === 'http:' || protocol === 'https:');
   var isGitHubPages = host === 'modeatlas.github.io';
+  var officialDomains = ['mode-atlas.app', 'www.mode-atlas.app', 'mode-atlas.com', 'www.mode-atlas.com'];
+  var isOfficialDomain = officialDomains.indexOf(host) !== -1;
+  var isPrimaryDomain = host === 'mode-atlas.app' || host === 'www.mode-atlas.app';
   var isHttp = protocol === 'http:' || protocol === 'https:';
   var isSecureLike = protocol === 'https:' || isLocalhost;
-  var isProduction = isGitHubPages;
+  var isProduction = isOfficialDomain || isGitHubPages;
   var isSupportedHost = isHttp;
   var canUsePwa = isSupportedHost && isSecureLike && ('serviceWorker' in navigator) && search.indexOf('sw=0') === -1;
   var canUseFirebase = isSupportedHost;
@@ -46,6 +49,15 @@
     isLocalhost: isLocalhost,
     isLocalServer: isLocalServer,
     isGitHubPages: isGitHubPages,
+    officialDomains: officialDomains.slice(),
+    isOfficialDomain: isOfficialDomain,
+    isPrimaryDomain: isPrimaryDomain,
+    primaryDomain: 'mode-atlas.app',
+    primaryUrl: 'https://mode-atlas.app/',
+    fallbackDomain: 'mode-atlas.com',
+    supportEmail: 'support@mode-atlas.com',
+    helloEmail: 'hello@mode-atlas.com',
+    adminEmail: 'admin@mode-atlas.com',
     isHosted: isSupportedHost,
     isProduction: isProduction,
     isSupportedHost: isSupportedHost,
@@ -68,6 +80,7 @@
   });
 
   document.documentElement.dataset.maEnv = isLocalFile ? 'file-fallback' : (isProduction ? 'production' : (isLocalServer ? 'local-server' : 'hosted'));
+  document.documentElement.dataset.maDomain = isOfficialDomain ? 'official' : (isGitHubPages ? 'github-pages' : (isLocalServer ? 'local-server' : 'other'));
   document.documentElement.dataset.maVersion = APP_VERSION;
 
   function onReady(fn){
