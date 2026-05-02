@@ -11,9 +11,7 @@
   var isLocalhost = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(host || '');
   var isLocalServer = isLocalhost && (protocol === 'http:' || protocol === 'https:');
   var isGitHubPages = host === 'modeatlas.github.io';
-  var officialDomains = ['mode-atlas.app', 'www.mode-atlas.app', 'mode-atlas.com', 'www.mode-atlas.com'];
-  var isOfficialDomain = officialDomains.indexOf(host) !== -1;
-  var isPrimaryDomain = host === 'mode-atlas.app' || host === 'www.mode-atlas.app';
+  var isOfficialDomain = /^(mode-atlas\.app|www\.mode-atlas\.app|mode-atlas\.com|www\.mode-atlas\.com)$/i.test(host || '');
   var isHttp = protocol === 'http:' || protocol === 'https:';
   var isSecureLike = protocol === 'https:' || isLocalhost;
   var isProduction = isOfficialDomain || isGitHubPages;
@@ -49,15 +47,10 @@
     isLocalhost: isLocalhost,
     isLocalServer: isLocalServer,
     isGitHubPages: isGitHubPages,
-    officialDomains: officialDomains.slice(),
     isOfficialDomain: isOfficialDomain,
-    isPrimaryDomain: isPrimaryDomain,
     primaryDomain: 'mode-atlas.app',
-    primaryUrl: 'https://mode-atlas.app/',
-    fallbackDomain: 'mode-atlas.com',
+    canonicalOrigin: 'https://mode-atlas.app',
     supportEmail: 'support@mode-atlas.com',
-    helloEmail: 'hello@mode-atlas.com',
-    adminEmail: 'admin@mode-atlas.com',
     isHosted: isSupportedHost,
     isProduction: isProduction,
     isSupportedHost: isSupportedHost,
@@ -66,7 +59,7 @@
     canUseFirebase: canUseFirebase,
     canUseModules: canUseModules,
     allowDevTools: (isLocalServer || search.indexOf('dev=1') !== -1 || safeStorageGet('modeAtlasDevTools') === '1'),
-    baseUrl: location.origin + '/',
+    baseUrl: (isOfficialDomain ? 'https://mode-atlas.app/' : (location.origin + '/')),
     loadModule: function(src, opts){
       if (!canUseModules || !src) return null;
       var script = document.createElement('script');
@@ -80,7 +73,6 @@
   });
 
   document.documentElement.dataset.maEnv = isLocalFile ? 'file-fallback' : (isProduction ? 'production' : (isLocalServer ? 'local-server' : 'hosted'));
-  document.documentElement.dataset.maDomain = isOfficialDomain ? 'official' : (isGitHubPages ? 'github-pages' : (isLocalServer ? 'local-server' : 'other'));
   document.documentElement.dataset.maVersion = APP_VERSION;
 
   function onReady(fn){

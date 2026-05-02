@@ -994,6 +994,8 @@
   const BUILD_LABEL = 'Professional Polish Update';
   const BUILD_DATE = '2026-05-01';
   const DEVELOPER = 'Jack Wright';
+  const SUPPORT_EMAIL = 'support@mode-atlas.com';
+  const OFFICIAL_SITE = 'mode-atlas.app';
 
   function $(sel, root=document){ return root.querySelector(sel); }
   function $all(sel, root=document){ return Array.from(root.querySelectorAll(sel)); }
@@ -1044,9 +1046,8 @@
         'settingsUpdatedAt','resultsUpdatedAt','srsUpdatedAt','dailyUpdatedAt','profileUpdatedAt','modeAtlasLastSyncCheck','kanaWordBankUpdatedAt'
       ])),
       installSupport: window.ModeAtlasEnv?.canUsePwa ? 'Available' : 'Not available here',
-      storage: (()=>{ try{ localStorage.setItem('__ma_probe','1'); localStorage.removeItem('__ma_probe'); return 'Available'; }catch{return 'Blocked';} })(),
-      officialSite: (window.ModeAtlasEnv && window.ModeAtlasEnv.primaryUrl) || 'https://mode-atlas.app/',
-      supportEmail: (window.ModeAtlasEnv && window.ModeAtlasEnv.supportEmail) || 'support@mode-atlas.com'
+      supportEmail: SUPPORT_EMAIL,
+      storage: (()=>{ try{ localStorage.setItem('__ma_probe','1'); localStorage.removeItem('__ma_probe'); return 'Available'; }catch{return 'Blocked';} })()
     };
   }
 
@@ -1087,7 +1088,7 @@
             <article class="ma-about-card"><span>Save version</span><strong data-ma-info="saveSchema"></strong><small>Helps keep backups compatible across app updates.</small></article>
             <article class="ma-about-card"><span>Build</span><strong data-ma-info="build"></strong><small data-ma-info="buildDate"></small></article>
             <article class="ma-about-card"><span>Install support</span><strong data-ma-info="installSupport"></strong><small>Add Mode Atlas to your device for quicker access.</small></article>
-            <article class="ma-about-card"><span>Support</span><strong><a href="mailto:support@mode-atlas.com">support@mode-atlas.com</a></strong><small>Use this for bugs, feedback, or account/save questions.</small></article>
+            <article class="ma-about-card"><span>Support</span><strong data-ma-info="supportEmail"></strong><small>Use this for help, bug reports, or app questions.</small></article>
           </div>
 
           <div class="ma-about-section">
@@ -1108,6 +1109,7 @@
             <h3>Developer</h3>
             <p><strong>Created by ${DEVELOPER}</strong></p>
             <p>Designed and built as a focused Japanese study ecosystem.</p>
+            <p>Support: <a href="mailto:support@mode-atlas.com">support@mode-atlas.com</a> · <a href="https://mode-atlas.app/" target="_blank" rel="noopener">mode-atlas.app</a></p>
             <p class="ma-about-muted">© 2026 ${DEVELOPER}. All rights reserved.</p>
           </div>
         </div>
