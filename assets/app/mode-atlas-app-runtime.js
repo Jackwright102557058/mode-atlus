@@ -1088,7 +1088,6 @@
             <article class="ma-about-card"><span>Save version</span><strong data-ma-info="saveSchema"></strong><small>Helps keep backups compatible across app updates.</small></article>
             <article class="ma-about-card"><span>Build</span><strong data-ma-info="build"></strong><small data-ma-info="buildDate"></small></article>
             <article class="ma-about-card"><span>Install support</span><strong data-ma-info="installSupport"></strong><small>Add Mode Atlas to your device for quicker access.</small></article>
-            <article class="ma-about-card"><span>Support</span><strong data-ma-info="supportEmail"></strong><small>Use this for help, bug reports, or app questions.</small></article>
           </div>
 
           <div class="ma-about-section">
