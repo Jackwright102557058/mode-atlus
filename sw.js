@@ -1,4 +1,4 @@
-const MODE_ATLAS_VERSION = '2.11.5';
+const MODE_ATLAS_VERSION = '2.12.0-import-preview';
 const CACHE_NAME = 'mode-atlas-v' + MODE_ATLAS_VERSION;
 
 const CORE_ASSETS = [

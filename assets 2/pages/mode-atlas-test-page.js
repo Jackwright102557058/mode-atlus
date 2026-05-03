@@ -32,6 +32,7 @@ const ROW_GROUPS = ResultsUI.ROW_GROUPS || REGULAR_ROW_GROUPS;
 const SPECIAL_CHAR_SET = ResultsUI.SPECIAL_CHAR_SET || new Set();
 const computeRowPerformance = ResultsUI.computeRowPerformance || (() => ({ rows: [], hiragana: [], katakana: [] }));
 const getRowCellExtremes = ResultsUI.getRowCellExtremes || (() => new Map());
+const rowNeedsErrorStyling = ResultsUI.rowNeedsErrorStyling || ((row) => !!row && Number(row.wrong || 0) > 0);
 const renderRowPerformance = ResultsUI.renderRowPerformance || (() => "");
 const formatDuration = ResultsUI.formatDuration || (() => "—");
 const normalizeTestResult = ResultsUI.normalizeTestResult || (() => null);

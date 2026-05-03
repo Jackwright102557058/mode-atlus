@@ -3,7 +3,7 @@
   if (window.__modeAtlasHeadBootstrapLoaded) return;
   window.__modeAtlasHeadBootstrapLoaded = true;
 
-  var APP_VERSION = '2.11.5';
+  var APP_VERSION = '2.11.6';
   var protocol = location.protocol;
   var host = location.hostname;
   var search = location.search || '';
@@ -16,7 +16,7 @@
   var isSecureLike = protocol === 'https:' || isLocalhost;
   var isProduction = isOfficialDomain || isGitHubPages;
   var isSupportedHost = isHttp;
-  var canUsePwa = isSupportedHost && isSecureLike && ('serviceWorker' in navigator) && search.indexOf('sw=0') === -1;
+  var canUsePwa = isSupportedHost && isSecureLike && !isLocalhost && ('serviceWorker' in navigator) && search.indexOf('sw=0') === -1;
   var canUseFirebase = isSupportedHost;
   var canUseModules = isSupportedHost;
 
@@ -121,6 +121,17 @@
     });
   }
 
+  function clearLocalDevServiceWorker(){
+    if (!isLocalhost || !('serviceWorker' in navigator)) return;
+    onReady(function(){
+      try {
+        navigator.serviceWorker.getRegistrations().then(function(regs){ regs.forEach(function(reg){ reg.unregister().catch(function(){}); }); }).catch(function(){});
+        if (window.caches && caches.keys) caches.keys().then(function(keys){ keys.filter(function(k){ return /^mode-atlas-/i.test(k); }).forEach(function(k){ caches.delete(k).catch(function(){}); }); }).catch(function(){});
+      } catch(e) {}
+    });
+  }
+
   attachManifest();
+  clearLocalDevServiceWorker();
   registerServiceWorker();
 })();

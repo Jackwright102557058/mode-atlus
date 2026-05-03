@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script src="/assets/app/mode-atlas-head-bootstrap.js"></script>
+<script src="../assets/app/mode-atlas-head-bootstrap.js"></script>
 
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Word Bank • Mode Atlas</title>
   <link rel="canonical" href="https://mode-atlas.app/wordbank/" />
 
-<link rel="icon" href="/assets/mode-atlas-icon.svg" type="image/svg+xml" />
-<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png" />
-<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
+<link rel="icon" href="../assets/mode-atlas-icon.svg" type="image/svg+xml" />
+<link rel="icon" href="../assets/favicon-32.png" sizes="32x32" type="image/png" />
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" />
 <meta name="theme-color" content="#121a2b" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -25,13 +25,13 @@
   <meta property="og:image" content="https://mode-atlas.app/assets/social-preview.svg" />
 <meta name="twitter:card" content="summary" />
 
-  <link rel="stylesheet" href="/assets/css/mode-atlas-wordbank-page.css">
-<link rel="stylesheet" href="/assets/css/mode-atlas-page-shared.css">
-<link rel="stylesheet" href="/assets/css/mode-atlas-qol.css" />
-<script defer src="/assets/app/mode-atlas-qol.js"></script>
-<script src="/assets/app/mode-atlas-storage.js"></script>
+  <link rel="stylesheet" href="../assets/css/mode-atlas-wordbank-page.css">
+<link rel="stylesheet" href="../assets/css/mode-atlas-page-shared.css">
+<link rel="stylesheet" href="../assets/css/mode-atlas-qol.css" />
+<script defer src="../assets/app/mode-atlas-qol.js"></script>
+<script src="../assets/app/mode-atlas-storage.js"></script>
 </head>
-<body><script src="/assets/app/mode-atlas-early-loader.js"></script><div class="ma-loading-screen" id="maLoadingScreen" aria-live="polite"><div class="ma-loading-card"><div class="ma-loading-head"><div class="ma-loading-mark">学</div><div><div class="ma-loading-title">Mode Atlas</div><div class="ma-loading-sub">Preparing your study space…</div></div></div><div class="ma-skeleton"></div><div class="ma-skeleton"></div><div class="ma-skeleton short"></div></div></div>
+<body><script src="../assets/app/mode-atlas-early-loader.js"></script><div class="ma-loading-screen" id="maLoadingScreen" aria-live="polite"><div class="ma-loading-card"><div class="ma-loading-head"><div class="ma-loading-mark">学</div><div><div class="ma-loading-title">Mode Atlas</div><div class="ma-loading-sub">Preparing your study space…</div></div></div><div class="ma-skeleton"></div><div class="ma-skeleton"></div><div class="ma-skeleton short"></div></div></div>
 
   <div class="drawer-backdrop" id="profileBackdrop"></div>
   <aside class="profile-drawer" id="profileDrawer" aria-hidden="true">
@@ -50,14 +50,14 @@
     <div class="drawer-actions">
       <button class="drawer-action primary" id="profileSignInBtn" data-profile-sign-in type="button">Sign in</button>
       <button class="drawer-action" id="profileSignOutBtn" data-profile-sign-out type="button" style="display:none;">Sign out</button>
-      <a class="drawer-action" href="/">Mode Atlas</a>
-      <a class="drawer-action" href="/kana/">Kana Trainer</a>
+      <a class="drawer-action" href="../">Mode Atlas</a>
+      <a class="drawer-action" href="../kana/">Kana Trainer</a>
     </div>
   </aside>
 
   <div class="wrap">
     <nav class="branch-nav" aria-label="Word Bank navigation">
-      <a class="branch-brand" href="/" aria-label="Back to Mode Atlas">
+      <a class="branch-brand" href="../" aria-label="Back to Mode Atlas">
         <div class="branch-mark">語</div>
         <div class="branch-meta">
           <div class="branch-kicker">Mode Atlas</div>
@@ -66,9 +66,9 @@
       </a>
 
       <div class="branch-links">
-        <a class="branch-link atlas" href="/">Atlas</a>
-        <a class="branch-link kana" href="/kana/">Kana Trainer</a>
-        <a class="branch-link words active" href="/wordbank/">Word Bank</a>
+        <a class="branch-link atlas" href="../">Atlas</a>
+        <a class="branch-link kana" href="../kana/">Kana Trainer</a>
+        <a class="branch-link words active" href="./">Word Bank</a>
         <button class="profile-trigger" id="profileOpenBtn" type="button" onclick="window.ModeAtlasWordProfile && window.ModeAtlasWordProfile.open()">Profile <span class="profile-dot" id="topProfileDot">M</span></button>
       </div>
     </nav>
@@ -172,13 +172,11 @@
   </div>
 
 
-  <script src="/assets/ui/mode-atlas-profile-drawer-bindings.js"></script>
+  <script src="../assets/ui/mode-atlas-profile-drawer-bindings.js"></script>
 
-  <script src="/firebase-config.js"></script>
-<script src="/cloud-sync.js"></script>
-<script src="/assets/pages/mode-atlas-wordbank-page.js"></script>
-
-
+  <script src="../firebase-config.js"></script>
+<script src="../cloud-sync.js"></script>
+<script src="../assets/pages/mode-atlas-wordbank-page.js"></script>
 
 
 
@@ -189,8 +187,10 @@
 
 
 
-<script src="/assets/ui/mode-atlas-verified-preset-confusable.js"></script>
-<script src="/assets/app/mode-atlas-app-runtime.js"></script>
-<script src="/assets/app/mode-atlas-sounds.js"></script>
+
+
+<script src="../assets/ui/mode-atlas-verified-preset-confusable.js"></script>
+<script src="../assets/app/mode-atlas-app-runtime.js"></script>
+<script src="../assets/app/mode-atlas-sounds.js"></script>
 </body>
 </html>

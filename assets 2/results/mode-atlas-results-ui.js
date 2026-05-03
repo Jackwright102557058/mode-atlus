@@ -252,7 +252,7 @@ function normalizeTestResult(result) {
         id: String(result.id || `${result.mode || "test"}-${Date.now()}`),
         type: result.type === "average" ? "average" : "test",
         title: String(result.title || "Untitled Test"),
-        mode: result.mode === "writing" ? "writing" : "reading",
+        mode: (result.mode === "writing" || result.source === "writing" || result.practiceMode === "writing" || result.section === "writing") ? "writing" : "reading",
         date: String(result.date || "—"),
         startedAt: String(result.startedAt || "—"),
         overallScore,

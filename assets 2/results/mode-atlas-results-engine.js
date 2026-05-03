@@ -12,38 +12,12 @@
     return fallback;
   }
 
-  function getEmbeddedSaveMaps(){
-    const maps = [];
-    const addMap = (value) => {
-      const parsed = safeParse(value, value);
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return;
-      if (parsed.data && typeof parsed.data === 'object') maps.push(parsed.data);
-      if (parsed.localStorage && typeof parsed.localStorage === 'object') maps.push(parsed.localStorage);
-      if (parsed.testModeResults || parsed.writingTestModeResults || parsed.readingTestModeResults) maps.push(parsed);
-    };
-
-    // Recovery for saves accidentally imported by the old fallback importer, which
-    // could store the whole export's data object under localStorage.data instead
-    // of expanding its keys.
-    ['data','localStorage','modeAtlasLastImportedSave','modeAtlasPendingImport'].forEach((key) => {
-      try { addMap(window.ModeAtlasStorage?.get ? window.ModeAtlasStorage.get(key, null) : null); } catch {}
-    });
-    return maps;
-  }
 
   function readArraysFromKeys(keys){
     const arrays = [];
     (keys || []).forEach((key) => {
       const value = loadJSON(key, null);
       if (Array.isArray(value)) arrays.push(value);
-    });
-
-    getEmbeddedSaveMaps().forEach((map) => {
-      (keys || []).forEach((key) => {
-        if (!Object.prototype.hasOwnProperty.call(map, key)) return;
-        const value = safeParse(map[key], null);
-        if (Array.isArray(value)) arrays.push(value);
-      });
     });
     return arrays;
   }
@@ -53,7 +27,11 @@
     const pushItems = (arr) => {
       if (!Array.isArray(arr)) return;
       arr.forEach((item) => {
-        const normalized = normalizeTestResult(item);
+        let itemWithModeHint = item;
+        if (item && typeof item === 'object' && !item.mode && expectedMode) {
+          itemWithModeHint = { ...item, mode: expectedMode };
+        }
+        const normalized = normalizeTestResult(itemWithModeHint);
         if (!normalized || normalized.mode !== expectedMode) return;
         const key = normalized.id || `${normalized.mode}-${normalized.date}-${normalized.startedAt}`;
         mergedMap.set(key, normalized);

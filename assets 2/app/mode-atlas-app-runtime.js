@@ -56,16 +56,22 @@
     if(!map || typeof map !== 'object' || Array.isArray(map)) throw new Error('Invalid save file');
     return map;
   }
-  function importSaveObject(obj){
-    var map=getSaveMap(obj);
-    Object.keys(map).forEach(function(k){
-      var v=map[k];
-      if(v===undefined || v===null) return;
-      localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
-    });
+  async function importSaveObject(obj){
+    var usedUnifiedImporter = false;
+    if(window.KanaCloudSync?.importLocalBackup){
+      await window.KanaCloudSync.importLocalBackup(obj);
+      usedUnifiedImporter = true;
+    } else {
+      var map=getSaveMap(obj);
+      Object.keys(map).forEach(function(k){
+        var v=map[k];
+        if(v===undefined || v===null) return;
+        localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
+      });
+    }
     localStorage.setItem('modeAtlasImportProtectUntil', String(Date.now()+15000));
     localStorage.setItem('modeAtlasLocalImportGuardUntil', String(Date.now()+120000));
-    if(window.KanaCloudSync){
+    if(window.KanaCloudSync && !usedUnifiedImporter){
       try{['reading','writing','wordBank','readingTests','writingTests'].forEach(function(s){window.KanaCloudSync.markSectionUpdated&&window.KanaCloudSync.markSectionUpdated(s);}); window.KanaCloudSync.scheduleSync&&window.KanaCloudSync.scheduleSync();}catch(e){}
     }
   }
@@ -91,7 +97,7 @@
     window.ModeAtlasKanaProfile={open:function(){setOpen(true)},close:function(){setOpen(false)}};
     window.ModeAtlasProfile=window.ModeAtlasKanaProfile;
   }
-  function bindSave(){var d=document.getElementById('profileDrawer'); if(!d)return; var file=d.querySelector('[data-ma-save-file]'); d.querySelector('[data-ma-save-export]')?.addEventListener('click',function(){var blob=new Blob([JSON.stringify(collectSave(),null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mode-atlas-save.json';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},0)}); d.querySelector('[data-ma-save-copy]')?.addEventListener('click',function(){navigator.clipboard&&navigator.clipboard.writeText(JSON.stringify(collectSave(),null,2));}); d.querySelector('[data-ma-save-import]')?.addEventListener('click',function(){file&&file.click()}); file&&file.addEventListener('change',function(e){var f=e.target.files&&e.target.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){try{importSaveObject(JSON.parse(r.result)); location.reload();}catch(err){alert('Import failed. Please use a valid Mode Atlas save file.')}}; r.readAsText(f);});}
+  function bindSave(){var d=document.getElementById('profileDrawer'); if(!d)return; var file=d.querySelector('[data-ma-save-file]'); d.querySelector('[data-ma-save-export]')?.addEventListener('click',function(){var blob=new Blob([JSON.stringify(collectSave(),null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mode-atlas-save.json';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},0)}); d.querySelector('[data-ma-save-copy]')?.addEventListener('click',function(){navigator.clipboard&&navigator.clipboard.writeText(JSON.stringify(collectSave(),null,2));}); d.querySelector('[data-ma-save-import]')?.addEventListener('click',function(){file&&file.click()}); file&&file.addEventListener('change',function(e){var f=e.target.files&&e.target.files[0]; if(!f)return; var r=new FileReader(); r.onload=async function(){try{var payload=JSON.parse(r.result); if(window.ModeAtlasImportUi?.previewAndImport){await window.ModeAtlasImportUi.previewAndImport(payload);}else{await importSaveObject(payload); location.reload();}}catch(err){console.warn('Save import failed.',err); if(window.ModeAtlasToast) window.ModeAtlasToast('Import failed. Please use a valid Mode Atlas save file.','bad');}}; r.readAsText(f); file.value='';});}
   function bindPrefs(){function mode(){return localStorage.getItem('modeAtlasDisplayMode')||'auto'} function apply(){document.body.dataset.displayMode=mode(); document.querySelectorAll('.ma-display-option').forEach(function(b){b.classList.toggle('active',b.dataset.display===mode())})} document.querySelectorAll('.ma-display-option').forEach(function(b){b.addEventListener('click',function(){localStorage.setItem('modeAtlasDisplayMode',b.dataset.display);apply();window.dispatchEvent(new CustomEvent('modeAtlasDisplayModeChanged',{detail:{mode:b.dataset.display}}));})}); apply();}
   function bindCloud(){if(window.KanaCloudSync&&window.KanaCloudSync.bindUi){try{window.KanaCloudSync.bindUi({signInBtn:document.getElementById('profileSignInBtn'),signOutBtn:document.getElementById('profileSignOutBtn'),statusEl:document.getElementById('profileStatus'),nameEl:document.getElementById('profileName'),emailEl:document.getElementById('profileEmail'),photoEl:document.getElementById('profileAvatar')});}catch(e){}}}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ensureDrawer);else ensureDrawer();
@@ -144,7 +150,7 @@
       '<button class="drawer-action danger" type="button" data-ma-unified-reset>Reset data</button>' +
     '</div>' +
     '<input type="file" accept=".json,application/json" data-ma-unified-file style="display:none" />' +
-    '<div class="ma-save-note">Backups merge by newest section: newer backup data updates cloud/local data, but newer cloud data is kept.</div>';
+    '<div class="ma-save-note">Importing a backup replaces matching sections that contain real data. You will review a summary before anything changes.</div>';
 
   const RESET_WARNING = 'Reset all Mode Atlas data?\n\nThis clears local save data on this device. If you are signed in and cloud is available, it also clears the cloud save data for this account. This cannot be undone.';
 
@@ -196,30 +202,162 @@
     refreshSyncPills();
   }
 
+
+
+  function escapeHtml(value){
+    return String(value == null ? '' : value).replace(/[&<>"]/g, (ch) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ch]));
+  }
+
+  function fallbackImportPreview(parsed){
+    const data = parsed?.data || parsed?.localStorage || parsed;
+    if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Invalid save file');
+    const has = (key) => Object.prototype.hasOwnProperty.call(data, key);
+    const readArray = (key) => {
+      if (!has(key)) return [];
+      const value = data[key];
+      if (Array.isArray(value)) return value;
+      if (typeof value === 'string') {
+        try { const parsedValue = JSON.parse(value); return Array.isArray(parsedValue) ? parsedValue : []; }
+        catch { return []; }
+      }
+      return [];
+    };
+    const countObj = (key) => {
+      if (!has(key)) return 0;
+      const value = data[key];
+      let parsedValue = value;
+      if (typeof value === 'string') {
+        try { parsedValue = JSON.parse(value); } catch { parsedValue = null; }
+      }
+      return parsedValue && typeof parsedValue === 'object' && !Array.isArray(parsedValue) ? Object.keys(parsedValue).length : 0;
+    };
+    const sections = [
+      { name:'reading', label:'Reading Practice', current: Object.keys(JSON.parse(localStorage.getItem('charStats') || '{}')).length + ' kana stats', incoming: countObj('charStats') + ' kana stats', willImport: has('charStats') || has('settings') || has('charTimes') || has('charSrs') },
+      { name:'writing', label:'Writing Practice', current: Object.keys(JSON.parse(localStorage.getItem('reverseCharStats') || '{}')).length + ' kana stats', incoming: countObj('reverseCharStats') + ' kana stats', willImport: has('reverseCharStats') || has('reverseSettings') || has('reverseCharTimes') || has('reverseCharSrs') },
+      { name:'readingTests', label:'Reading Test Results', current: readArrayFromLocal('testModeResults').length + ' reading tests', incoming: Math.max(readArray('testModeResults').length, readArray('readingTestModeResults').length, readArray('kanaTrainerTestModeResults').length).toString() + ' reading tests', willImport: has('testModeResults') || has('readingTestModeResults') || has('kanaTrainerTestModeResults') },
+      { name:'writingTests', label:'Writing Test Results', current: readArrayFromLocal('writingTestModeResults').length + ' writing tests', incoming: Math.max(readArray('writingTestModeResults').length, readArray('reverseTestModeResults').length).toString() + ' writing tests', willImport: has('writingTestModeResults') || has('reverseTestModeResults') },
+      { name:'wordBank', label:'Word Bank', current: readArrayFromLocal('kanaWordBank').length + ' word bank items', incoming: readArray('kanaWordBank').length + ' word bank items', willImport: has('kanaWordBank') }
+    ].map((section) => ({ ...section, action: section.willImport ? 'Will replace from backup' : 'Will keep current data' }));
+    return { exportedAt: Date.parse(parsed?.exportedAt || '') || 0, sections };
+  }
+
+  function readArrayFromLocal(key){
+    try { const value = JSON.parse(localStorage.getItem(key) || '[]'); return Array.isArray(value) ? value : []; }
+    catch { return []; }
+  }
+
+  function buildImportPreview(parsed){
+    if (window.KanaCloudSync?.previewLocalBackup) return window.KanaCloudSync.previewLocalBackup(parsed);
+    return fallbackImportPreview(parsed);
+  }
+
+  function closeImportConfirm(){
+    document.getElementById('maImportConfirmModal')?.classList.remove('open');
+  }
+
+  function ensureImportConfirmModal(){
+    let modal = document.getElementById('maImportConfirmModal');
+    if (modal) return modal;
+    modal = document.createElement('div');
+    modal.id = 'maImportConfirmModal';
+    modal.className = 'ma-import-confirm-backdrop';
+    modal.innerHTML = '<div class="ma-import-confirm-card" role="dialog" aria-modal="true" aria-labelledby="maImportConfirmTitle">' +
+      '<div class="ma-import-confirm-head">' +
+        '<div><div class="ma-import-confirm-kicker">Save import</div><h2 id="maImportConfirmTitle">Review imported save</h2></div>' +
+        '<button class="ma-import-confirm-x" type="button" data-ma-import-cancel aria-label="Cancel import">×</button>' +
+      '</div>' +
+      '<p class="ma-import-confirm-copy">Manual imports use the selected backup for any section that contains real data. Empty backup sections will not erase useful current data.</p>' +
+      '<div class="ma-import-confirm-meta" data-ma-import-meta></div>' +
+      '<div class="ma-import-confirm-table" data-ma-import-table></div>' +
+      '<div class="ma-import-confirm-actions">' +
+        '<button type="button" class="drawer-action" data-ma-import-cancel>Cancel</button>' +
+        '<button type="button" class="drawer-action primary" data-ma-import-continue>Continue import</button>' +
+      '</div>' +
+    '</div>';
+    document.body.appendChild(modal);
+    return modal;
+  }
+
+  function formatImportDate(ts){
+    const n = Number(ts || 0);
+    if (!Number.isFinite(n) || !n) return 'unknown export date';
+    const date = new Date(n);
+    if (Number.isNaN(date.getTime())) return 'unknown export date';
+    return date.toLocaleString([], { day:'numeric', month:'short', year:'numeric', hour:'numeric', minute:'2-digit' });
+  }
+
+  function showImportConfirm(parsed){
+    const preview = buildImportPreview(parsed);
+    const modal = ensureImportConfirmModal();
+    const meta = modal.querySelector('[data-ma-import-meta]');
+    const table = modal.querySelector('[data-ma-import-table]');
+    const importing = (preview.sections || []).filter((section) => section.willImport).length;
+    meta.innerHTML = '<span>Backup exported: <strong>' + escapeHtml(formatImportDate(preview.exportedAt)) + '</strong></span>' +
+      '<span>Sections to import: <strong>' + importing + '</strong></span>';
+    table.innerHTML = '<div class="ma-import-confirm-row head"><span>Section</span><span>Current loaded</span><span>Imported save</span><span>Action</span></div>' +
+      (preview.sections || []).map((section) => '<div class="ma-import-confirm-row">' +
+        '<span><strong>' + escapeHtml(section.label) + '</strong></span>' +
+        '<span>' + escapeHtml(section.current) + '</span>' +
+        '<span>' + escapeHtml(section.incoming) + '</span>' +
+        '<span class="' + (section.willImport ? 'will-import' : 'will-keep') + '">' + escapeHtml(section.action) + '</span>' +
+      '</div>').join('');
+    modal.classList.add('open');
+    return new Promise((resolve) => {
+      const continueBtn = modal.querySelector('[data-ma-import-continue]');
+      const cancelButtons = modal.querySelectorAll('[data-ma-import-cancel]');
+      const cleanup = () => {
+        continueBtn.onclick = null;
+        cancelButtons.forEach((button) => { button.onclick = null; });
+        modal.onclick = null;
+        document.removeEventListener('keydown', onKeydown, true);
+      };
+      const finish = (accepted) => { cleanup(); closeImportConfirm(); resolve(accepted); };
+      const onKeydown = (event) => { if (event.key === 'Escape') finish(false); };
+      continueBtn.onclick = () => finish(true);
+      cancelButtons.forEach((button) => { button.onclick = () => finish(false); });
+      modal.onclick = (event) => { if (event.target === modal) finish(false); };
+      document.addEventListener('keydown', onKeydown, true);
+    });
+  }
+
+  async function applyImportPayload(parsed){
+    if (window.KanaCloudSync?.importLocalBackup) {
+      return window.KanaCloudSync.importLocalBackup(parsed);
+    }
+    const data = parsed.data || parsed.localStorage || parsed;
+    if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Invalid save file');
+    Object.entries(data).forEach(([k,v]) => localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)));
+    return { updated: ['local'], keptLocal: [], cloudSynced: false };
+  }
+
+  async function previewAndImport(parsed, options = {}){
+    const confirmed = await showImportConfirm(parsed);
+    if (!confirmed) {
+      setStatus('Import cancelled.');
+      return false;
+    }
+    setStatus('Importing backup...');
+    const result = await applyImportPayload(parsed);
+    setStatus('Save imported. Reloading...');
+    if (typeof options.afterImport === 'function') options.afterImport(result);
+    else setTimeout(() => location.reload(), 350);
+    return true;
+  }
+
   async function importBackupFile(file){
     if (!file) return;
     try {
       const text = await file.text();
       const parsed = JSON.parse(text || '{}');
-      setStatus('Checking backup against current save data...');
-      let message = 'Save imported.';
-      if (window.KanaCloudSync?.importLocalBackup) {
-        const result = await window.KanaCloudSync.importLocalBackup(parsed);
-        message = window.KanaCloudSync.describeImportResult?.(result) || message;
-      } else {
-        const data = parsed.data || parsed.localStorage || parsed;
-        Object.entries(data || {}).forEach(([k,v]) => localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)));
-        message = 'Save imported locally. Log in to cloud save after reload.';
-      }
-      alert(message);
-      setStatus('Save imported. Reloading...');
-      setTimeout(() => location.reload(), 500);
+      setStatus('Review import before continuing...');
+      await previewAndImport(parsed);
     } catch (error) {
       console.warn('Save import failed.', error);
-      alert('Import failed. Please choose a valid Mode Atlas save file.');
-      setStatus('Import failed.');
+      setStatus('Import failed. Please choose a valid Mode Atlas save file.');
     }
   }
+
+  window.ModeAtlasImportUi = { previewAndImport, buildImportPreview };
 
   async function resetData(){
     if (!confirm(RESET_WARNING)) return;
@@ -291,7 +429,7 @@
     if (document.getElementById('ma-unified-save-sync-style')) return;
     const style = document.createElement('style');
     style.id = 'ma-unified-save-sync-style';
-    style.textContent = '.ma-save-section{display:block!important;margin-top:14px!important;padding:14px!important;border-radius:18px!important;background:rgba(255,255,255,.04)!important;border:1px solid rgba(255,255,255,.08)!important}.ma-save-title{font-weight:900;font-size:14px;margin-bottom:10px}.ma-save-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important}.ma-save-grid button{width:100%;min-height:42px}.ma-save-grid .danger{border-color:rgba(255,107,107,.38)!important;color:#ffd6d6!important;background:rgba(255,107,107,.08)!important}.ma-save-note{margin-top:10px;color:var(--muted,#9aa3b8);font-size:12px;line-height:1.45}.ma-sync-pill{display:inline-flex;align-items:center;justify-content:center;margin-top:10px;padding:7px 10px;border-radius:999px;font-size:12px;font-weight:900;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--muted,#9aa3b8)}.ma-sync-pill.ok,.ma-sync-pill.cloud{border-color:rgba(89,210,120,.34);background:rgba(89,210,120,.12);color:#bcf7cb}.ma-sync-pill.warning,.ma-sync-pill.offline{border-color:rgba(255,176,64,.40);background:rgba(255,176,64,.12);color:#ffe0aa}.ma-sync-pill.local,.ma-sync-pill.neutral{border-color:rgba(102,168,255,.34);background:rgba(102,168,255,.11);color:#d7e8ff}@media(max-width:640px){.ma-save-grid{grid-template-columns:1fr!important}}';
+    style.textContent = '.ma-save-section{display:block!important;margin-top:14px!important;padding:14px!important;border-radius:18px!important;background:rgba(255,255,255,.04)!important;border:1px solid rgba(255,255,255,.08)!important}.ma-save-title{font-weight:900;font-size:14px;margin-bottom:10px}.ma-save-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important}.ma-save-grid button{width:100%;min-height:42px}.ma-save-grid .danger{border-color:rgba(255,107,107,.38)!important;color:#ffd6d6!important;background:rgba(255,107,107,.08)!important}.ma-save-note{margin-top:10px;color:var(--muted,#9aa3b8);font-size:12px;line-height:1.45}.ma-sync-pill{display:inline-flex;align-items:center;justify-content:center;margin-top:10px;padding:7px 10px;border-radius:999px;font-size:12px;font-weight:900;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--muted,#9aa3b8)}.ma-sync-pill.ok,.ma-sync-pill.cloud{border-color:rgba(89,210,120,.34);background:rgba(89,210,120,.12);color:#bcf7cb}.ma-sync-pill.warning,.ma-sync-pill.offline{border-color:rgba(255,176,64,.40);background:rgba(255,176,64,.12);color:#ffe0aa}.ma-sync-pill.local,.ma-sync-pill.neutral{border-color:rgba(102,168,255,.34);background:rgba(102,168,255,.11);color:#d7e8ff}.ma-import-confirm-backdrop{position:fixed;inset:0;z-index:10050;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(3,6,12,.72);backdrop-filter:blur(12px)}.ma-import-confirm-backdrop.open{display:flex}.ma-import-confirm-card{width:min(760px,100%);max-height:min(82vh,760px);overflow:auto;border-radius:24px;background:rgba(17,24,39,.98);border:1px solid rgba(255,255,255,.13);box-shadow:0 24px 70px rgba(0,0,0,.48);padding:20px;color:var(--text,#f6f7fb)}.ma-import-confirm-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:10px}.ma-import-confirm-kicker{font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--muted,#9aa3b8)}.ma-import-confirm-card h2{margin:3px 0 0;font-size:24px;line-height:1.15}.ma-import-confirm-copy{margin:0 0 14px;color:var(--muted,#9aa3b8);line-height:1.5}.ma-import-confirm-x{width:36px;height:36px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);color:var(--text,#f6f7fb);font-size:24px;line-height:1;cursor:pointer}.ma-import-confirm-meta{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}.ma-import-confirm-meta span{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);font-size:12px;color:var(--muted,#9aa3b8)}.ma-import-confirm-table{display:grid;gap:8px}.ma-import-confirm-row{display:grid;grid-template-columns:1.05fr 1fr 1fr 1.05fr;gap:10px;align-items:center;padding:10px;border-radius:14px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);font-size:13px}.ma-import-confirm-row.head{font-weight:900;color:var(--muted,#9aa3b8);background:transparent;border-color:transparent;padding-bottom:2px}.ma-import-confirm-row span{min-width:0}.ma-import-confirm-row .will-import{color:#bcf7cb;font-weight:900}.ma-import-confirm-row .will-keep{color:#ffe0aa;font-weight:900}.ma-import-confirm-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}.ma-import-confirm-actions button{min-width:132px}.ma-import-preview-backdrop{display:none!important}@media(max-width:700px){.ma-save-grid{grid-template-columns:1fr!important}.ma-import-confirm-card{padding:16px}.ma-import-confirm-row{grid-template-columns:1fr;gap:4px}.ma-import-confirm-row.head{display:none}.ma-import-confirm-actions{display:grid;grid-template-columns:1fr}.ma-import-confirm-actions button{width:100%}}';
     document.head.appendChild(style);
   }
 
@@ -786,52 +924,9 @@
     }
   }
 
-  function compareImportPayload(payload){
-    const labels = [
-      ['settings','Settings','settingsUpdatedAt'],
-      ['stats','Reading stats','resultsUpdatedAt'],
-      ['times','Speed data','resultsUpdatedAt'],
-      ['srs','SRS progress','srsUpdatedAt'],
-      ['dailyChallengeHistory','Daily challenge history','dailyUpdatedAt'],
-      ['scoreHistory','Score history','resultsUpdatedAt'],
-      ['readingTestModeResults','Reading test results','resultsUpdatedAt'],
-      ['writingTestModeResults','Writing test results','resultsUpdatedAt']
-    ];
-    const importedAt = Date.parse(payload.exportedAt||payload.updatedAt||'') || Number(payload.exportedAt||0) || 0;
-    return labels.filter(([key])=>payload[key] !== undefined || (key==='writingTestModeResults' && payload.testModeResults)).map(([key,label,ts])=>{
-      const local=Number(localStorage.getItem(ts)||0);
-      const incoming=Number(payload[ts]||payload.sectionTimestamps?.[ts]||importedAt||0);
-      return {label, action: !local || incoming>=local ? 'Will update' : 'Local/cloud appears newer'};
-    });
-  }
-
-  function showImportPreview(payload, onApply){
-    let modal=$('#maImportPreview');
-    if(!modal){
-      modal=document.createElement('div');
-      modal.id='maImportPreview';
-      modal.className='ma-import-preview-backdrop';
-      modal.innerHTML=`<div class="ma-import-preview-modal">
-        <h2>Preview import</h2>
-        <p>This checks the backup against your current local/cloud timestamps before applying it.</p>
-        <div class="ma-import-preview-list"></div>
-        <div class="ma-import-preview-actions">
-          <button type="button" data-ma-import-cancel>Cancel</button>
-          <button type="button" data-ma-import-apply>Import and merge</button>
-        </div>
-      </div>`;
-      document.body.appendChild(modal);
-    }
-    const rows=compareImportPayload(payload);
-    $('.ma-import-preview-list', modal).innerHTML = rows.length ? rows.map(r=>`<div><span>${r.label}</span><b>${r.action}</b></div>`).join('') : '<div><span>Backup data</span><b>Ready to import</b></div>';
-    modal.classList.add('open');
-    const close=()=>modal.classList.remove('open');
-    $('[data-ma-import-cancel]', modal).onclick=close;
-    $('[data-ma-import-apply]', modal).onclick=()=>{ close(); onApply(); toast('Backup imported and merged.', 'ok'); };
-  }
-
   function installImportPreview(){
-    // Native trainer import modal.
+    // Native trainer import modal uses the same in-app confirmation and
+    // canonical importer as the profile drawer file-import flow.
     document.addEventListener('click', e=>{
       const btn=e.target.closest?.('#confirmImportBtn');
       if(!btn) return;
@@ -842,25 +937,26 @@
       e.preventDefault(); e.stopImmediatePropagation(); e.stopPropagation();
       try{
         const payload=JSON.parse(raw);
-        showImportPreview(payload, ()=>{
-          try{ if(typeof applyImportedData === 'function') applyImportedData(payload); else if(typeof importSaveObject === 'function') importSaveObject(payload); }catch(err){ alert('Import failed. Please use a valid Mode Atlas save file.'); return; }
-          try{ $('#importModalBackdrop')?.classList.remove('open'); }catch{}
-        });
-      }catch{ alert('Import failed. Make sure the JSON is valid.'); }
-    }, true);
-
-    // Profile drawer import function hook, where available.
-    setTimeout(()=>{
-      try{
-        if(typeof importSaveObject === 'function' && !window.__maImportHooked){
-          const native=importSaveObject;
-          window.__maImportHooked=true;
-          importSaveObject=function(obj){
-            showImportPreview(obj, ()=>{ native(obj); location.reload(); });
-          };
+        if(window.ModeAtlasImportUi?.previewAndImport){
+          window.ModeAtlasImportUi.previewAndImport(payload, {
+            afterImport: ()=>{
+              try{ $('#importModalBackdrop')?.classList.remove('open'); }catch{}
+              location.reload();
+            }
+          }).catch(err=>{
+            console.warn('Save import failed.', err);
+            toast('Import failed. Please use a valid Mode Atlas save file.', 'bad');
+          });
+        } else if(window.KanaCloudSync?.importLocalBackup){
+          window.KanaCloudSync.importLocalBackup(payload).then(()=>location.reload()).catch(err=>{
+            console.warn('Save import failed.', err);
+            toast('Import failed. Please use a valid Mode Atlas save file.', 'bad');
+          });
         }
-      }catch{}
-    }, 1000);
+      }catch{
+        toast('Import failed. Make sure the JSON is valid.', 'bad');
+      }
+    }, true);
   }
 
   function installWhatsNew(){

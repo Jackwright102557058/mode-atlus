@@ -167,6 +167,81 @@ function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
 }
 
+
+function parseMaybeJSON(value) {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  if (!trimmed) return value;
+  if (!/^[\[{]/.test(trimmed)) return value;
+  try { return JSON.parse(trimmed); } catch { return value; }
+}
+
+function coerceStorageMap(value) {
+  const parsed = parseMaybeJSON(value);
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+  return parsed;
+}
+
+function firstNonEmptyMap(...values) {
+  for (const value of values) {
+    const map = coerceStorageMap(value);
+    if (Object.keys(map).length) return map;
+  }
+  return {};
+}
+
+function firstArrayFromData(data, fieldNames, modeHint = '') {
+  for (const field of fieldNames) {
+    const value = readJSONFromMap(data, field, null);
+    if (Array.isArray(value)) {
+      return value.map((item, index) => normalizeImportedTestItem(item, modeHint, index)).filter(Boolean);
+    }
+  }
+  return [];
+}
+
+function normalizeImportedTestItem(item, modeHint = '', index = 0) {
+  if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
+  const row = { ...item };
+  if (!row.mode) {
+    if (modeHint === 'writing' || row.source === 'writing' || row.practiceMode === 'writing' || row.section === 'writing') row.mode = 'writing';
+    else row.mode = 'reading';
+  }
+  const base = Date.parse(row.createdAt || row.completedAt || row.date || row.timestamp || '') || Number(row.timestamp || row.completedAtMs || 0) || Date.now();
+  if (!row.id) row.id = `${row.mode}-test-${base}-${index}`;
+  if (!row.createdAt) row.createdAt = new Date(base).toISOString();
+  if (!row.updatedAt) row.updatedAt = row.createdAt;
+  return row;
+}
+
+function normalizeImportedTestList(list, modeHint = '') {
+  if (!Array.isArray(list)) return [];
+  return list.map((item, index) => normalizeImportedTestItem(item, modeHint, index)).filter(Boolean);
+}
+
+function normalizeTestSectionPayload(sectionName, payload) {
+  const data = coerceStorageMap(payload);
+  if (sectionName === 'readingTests') {
+    const primary = firstArrayFromData(data, ['primary', 'testModeResults', 'readingTestModeResults'], 'reading')
+      .filter((item) => (item.mode || 'reading') === 'reading');
+    const backup = firstArrayFromData(data, ['backup', 'kanaTrainerTestModeResults'], 'reading')
+      .filter((item) => (item.mode || 'reading') === 'reading');
+    const altPrimary = firstArrayFromData(data, ['altPrimary', 'readingTestModeResults'], 'reading')
+      .filter((item) => (item.mode || 'reading') === 'reading');
+    const altBackup = firstArrayFromData(data, ['altBackup', 'kanaTrainerReadingTestModeResults'], 'reading')
+      .filter((item) => (item.mode || 'reading') === 'reading');
+    return { ...data, primary, backup, altPrimary, altBackup };
+  }
+  if (sectionName === 'writingTests') {
+    const primary = firstArrayFromData(data, ['primary', 'writingTestModeResults', 'reverseTestModeResults'], 'writing')
+      .filter((item) => item.mode === 'writing');
+    const backup = firstArrayFromData(data, ['backup', 'kanaTrainerWritingTestModeResults'], 'writing')
+      .filter((item) => item.mode === 'writing');
+    return { ...data, primary, backup };
+  }
+  return data;
+}
+
 function snapshotSection(sectionName) {
   const def = SECTION_DEFS[sectionName];
   const data = {};
@@ -203,9 +278,9 @@ function snapshotSectionFixed(sectionName) {
 
 function readJSONFromMap(map, key, fallback) {
   if (!map || typeof map !== 'object' || !(key in map)) return fallback;
-  const value = map[key];
+  const value = parseMaybeJSON(map[key]);
   if (typeof value !== 'string') return value == null ? fallback : clone(value);
-  try { return JSON.parse(value); } catch { return value == null ? fallback : value; }
+  return value == null ? fallback : value;
 }
 
 function readStringFromMap(map, key, fallback = '0') {
@@ -230,7 +305,16 @@ function normalizeLegacyStorageMap(input) {
   mapLegacyKey('writingTimes', 'reverseCharTimes');
   mapLegacyKey('writingSrs', 'reverseCharSrs');
   mapLegacyKey('wordBank', 'kanaWordBank');
+  mapLegacyKey('reverseTestModeResults', 'writingTestModeResults');
   try {
+    ['testModeResults','kanaTrainerTestModeResults','readingTestModeResults','kanaTrainerReadingTestModeResults'].forEach((key) => {
+      const list = readJSONFromMap(data, key, null);
+      if (Array.isArray(list)) data[key] = JSON.stringify(normalizeImportedTestList(list, 'reading'));
+    });
+    ['writingTestModeResults','kanaTrainerWritingTestModeResults','reverseTestModeResults'].forEach((key) => {
+      const list = readJSONFromMap(data, key, null);
+      if (Array.isArray(list)) data[key] = JSON.stringify(normalizeImportedTestList(list, 'writing'));
+    });
     const tests = readJSONFromMap(data, 'testModeResults', null);
     if (Array.isArray(tests) && data.readingTestModeResults === undefined && data.writingTestModeResults === undefined) {
       data.readingTestModeResults = JSON.stringify(tests.filter((item) => (item && (item.mode || 'reading')) === 'reading'));
@@ -255,10 +339,152 @@ function snapshotFromStorageMap(rawMap, fallbackTimestamp = 0) {
     });
     sections[sectionName] = {
       updatedAt: normalizeTimestamp(map[def.updatedAtKey]) || fallbackTs,
-      data
+      data: normalizeTestSectionPayload(sectionName, data)
     };
   });
   return { version: 'mode-atlas-import-snapshot-v2', updatedAt: fallbackTs, sections };
+}
+
+function repairImportSnapshotWithStorageMap(snapshot, rawMap, fallbackTimestamp = 0) {
+  const map = coerceStorageMap(rawMap);
+  const mapSnapshot = Object.keys(map).length ? snapshotFromStorageMap(map, fallbackTimestamp) : null;
+  const repaired = clone(snapshot) || {};
+  repaired.sections = repaired.sections && typeof repaired.sections === 'object' ? repaired.sections : {};
+  ['readingTests','writingTests'].forEach((sectionName) => {
+    if (repaired.sections[sectionName]?.data) {
+      repaired.sections[sectionName].data = normalizeTestSectionPayload(sectionName, repaired.sections[sectionName].data);
+    }
+  });
+
+  Object.keys(SECTION_DEFS).forEach((sectionName) => {
+    const fromMap = mapSnapshot?.sections?.[sectionName];
+    if (!fromMap) return;
+
+    const existing = repaired.sections[sectionName];
+    const existingHasData = sectionHasMeaningfulData(sectionName, existing?.data || {});
+    const mapHasData = sectionHasMeaningfulData(sectionName, fromMap.data || {});
+
+    if (!existing || (!existingHasData && mapHasData)) {
+      repaired.sections[sectionName] = fromMap;
+      return;
+    }
+
+    if ((sectionName === 'readingTests' || sectionName === 'writingTests') && mapHasData) {
+      const mergedData = { ...(existing.data || {}) };
+      Object.entries(fromMap.data || {}).forEach(([field, value]) => {
+        if (Array.isArray(value) && value.length && (!Array.isArray(mergedData[field]) || !mergedData[field].length)) {
+          mergedData[field] = value;
+        }
+      });
+      repaired.sections[sectionName] = {
+        ...existing,
+        updatedAt: normalizeTimestamp(existing.updatedAt) || normalizeTimestamp(fromMap.updatedAt) || fallbackTimestamp,
+        data: mergedData
+      };
+    }
+  });
+
+  return repaired;
+}
+
+
+
+function collectImportTestSources(obj) {
+  const sources = [];
+  const add = (value) => {
+    const parsed = parseMaybeJSON(value);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return;
+    sources.push(parsed);
+    if (parsed.data && typeof parsed.data === 'object') sources.push(coerceStorageMap(parsed.data));
+    if (parsed.localStorage && typeof parsed.localStorage === 'object') sources.push(coerceStorageMap(parsed.localStorage));
+    if (parsed.snapshot?.sections && typeof parsed.snapshot.sections === 'object') {
+      const reading = parsed.snapshot.sections.readingTests?.data;
+      const writing = parsed.snapshot.sections.writingTests?.data;
+      if (reading && typeof reading === 'object') sources.push(reading);
+      if (writing && typeof writing === 'object') sources.push(writing);
+    }
+    if (parsed.sections && typeof parsed.sections === 'object') {
+      const reading = parsed.sections.readingTests?.data;
+      const writing = parsed.sections.writingTests?.data;
+      if (reading && typeof reading === 'object') sources.push(reading);
+      if (writing && typeof writing === 'object') sources.push(writing);
+    }
+  };
+  add(obj);
+  return sources;
+}
+
+function collectImportedTestResults(obj) {
+  const reading = [];
+  const writing = [];
+  const seen = { reading: new Set(), writing: new Set() };
+  const addList = (list, modeHint) => {
+    normalizeImportedTestList(list, modeHint).forEach((item, index) => {
+      const mode = item.mode === 'writing' ? 'writing' : 'reading';
+      if (mode !== modeHint) return;
+      const key = item.id || `${mode}-${item.createdAt || item.date || index}`;
+      if (seen[mode].has(key)) return;
+      seen[mode].add(key);
+      (mode === 'writing' ? writing : reading).push(item);
+    });
+  };
+  collectImportTestSources(obj).forEach((source) => {
+    [
+      ['testModeResults', 'reading'],
+      ['readingTestModeResults', 'reading'],
+      ['kanaTrainerTestModeResults', 'reading'],
+      ['kanaTrainerReadingTestModeResults', 'reading'],
+      ['primary', 'reading'],
+      ['altPrimary', 'reading'],
+      ['backup', 'reading'],
+      ['altBackup', 'reading'],
+      ['writingTestModeResults', 'writing'],
+      ['reverseTestModeResults', 'writing'],
+      ['kanaTrainerWritingTestModeResults', 'writing'],
+      ['primary', 'writing'],
+      ['backup', 'writing']
+    ].forEach(([key, mode]) => {
+      const value = readJSONFromMap(source, key, null);
+      if (Array.isArray(value)) addList(value, mode);
+    });
+  });
+  return { reading, writing };
+}
+
+function applyImportedTestResultsToSnapshot(snapshot, saveObject, exportedAt) {
+  const imported = collectImportedTestResults(saveObject);
+  const ts = normalizeTimestamp(exportedAt) || Date.now();
+  const out = clone(snapshot) || { sections: {} };
+  out.sections = out.sections && typeof out.sections === 'object' ? out.sections : {};
+
+  if (imported.reading.length) {
+    out.sections.readingTests = {
+      ...(out.sections.readingTests || {}),
+      updatedAt: ts,
+      data: normalizeTestSectionPayload('readingTests', {
+        primary: imported.reading,
+        backup: imported.reading,
+        altPrimary: imported.reading,
+        altBackup: imported.reading
+      })
+    };
+  }
+
+  if (imported.writing.length) {
+    out.sections.writingTests = {
+      ...(out.sections.writingTests || {}),
+      updatedAt: ts,
+      data: normalizeTestSectionPayload('writingTests', {
+        primary: imported.writing,
+        backup: imported.writing
+      })
+    };
+  }
+
+  return {
+    snapshot: out,
+    counts: { reading: imported.reading.length, writing: imported.writing.length }
+  };
 }
 
 function buildLocalSnapshot() {
@@ -303,7 +529,7 @@ function clearLocalAppData() {
 
 function writeSectionToLocal(sectionName, payload, updatedAt) {
   const def = SECTION_DEFS[sectionName];
-  const data = ensureResultIdsInSectionData(sectionName, payload || {});
+  const data = ensureResultIdsInSectionData(sectionName, normalizeTestSectionPayload(sectionName, payload || {}));
   Object.entries(def.scalar).forEach(([field, key]) => {
     localStorage.setItem(key, String(data[field] ?? '0'));
   });
@@ -395,7 +621,17 @@ function mergeCloudIntoLocal(snapshot, options = {}) {
       return;
     }
 
-    if (remoteUpdatedAt > localUpdatedAt) {
+    // Never let a newer-but-empty cloud section erase real local progress.
+    // This was especially visible after importing an older backup: the import
+    // restored local test results, then the next page load could hydrate a
+    // blank cloud test section with a newer timestamp and wipe them before the
+    // Results page rendered.
+    if (!remoteHasData && localHasData) {
+      localPreferred = true;
+      return;
+    }
+
+    if (remoteUpdatedAt > localUpdatedAt && remoteHasData) {
       writeSectionToLocal(name, remoteData, remoteUpdatedAt);
     } else if (localUpdatedAt > remoteUpdatedAt && localHasData) {
       localPreferred = true;
@@ -827,57 +1063,137 @@ function createBackup() {
 function getImportMapAndSnapshot(obj) {
   if (!obj || typeof obj !== 'object') throw new Error('Invalid save file');
   const exportedAt = Date.parse(obj.exportedAt || '') || Date.now();
-  if (obj.snapshot && obj.snapshot.sections) return { snapshot: obj.snapshot, map: obj.data || obj.localStorage || {}, exportedAt };
-  if (obj.sections) return { snapshot: obj, map: obj.data || obj.localStorage || {}, exportedAt: normalizeTimestamp(obj.updatedAt) || exportedAt };
-  const map = obj.localStorage || obj.data || obj;
-  if (!map || typeof map !== 'object' || Array.isArray(map)) throw new Error('Invalid save file');
-  return { snapshot: snapshotFromStorageMap(map, exportedAt), map, exportedAt };
+  const fallbackMap = firstNonEmptyMap(obj.data, obj.localStorage);
+
+  if (obj.snapshot && obj.snapshot.sections) {
+    return {
+      snapshot: repairImportSnapshotWithStorageMap(obj.snapshot, fallbackMap, exportedAt),
+      map: fallbackMap,
+      exportedAt
+    };
+  }
+
+  if (obj.sections) {
+    const sectionExportedAt = normalizeTimestamp(obj.updatedAt) || exportedAt;
+    return {
+      snapshot: repairImportSnapshotWithStorageMap(obj, fallbackMap, sectionExportedAt),
+      map: fallbackMap,
+      exportedAt: sectionExportedAt
+    };
+  }
+
+  const legacyMap = firstNonEmptyMap(obj.localStorage, obj.data, obj);
+  if (!legacyMap || typeof legacyMap !== 'object' || Array.isArray(legacyMap)) throw new Error('Invalid save file');
+  return { snapshot: snapshotFromStorageMap(legacyMap, exportedAt), map: legacyMap, exportedAt };
+}
+
+function countObjectKeys(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? Object.keys(value).length : 0;
+}
+
+function countArrayItems(value) {
+  return Array.isArray(value) ? value.length : 0;
+}
+
+function summarizeImportSection(sectionName, data) {
+  const safe = data && typeof data === 'object' ? data : {};
+  if (sectionName === 'reading') {
+    return [
+      countObjectKeys(safe.stats) + ' kana stats',
+      countObjectKeys(safe.times) + ' timing records',
+      countObjectKeys(safe.srs) + ' SRS entries'
+    ].join(' · ');
+  }
+  if (sectionName === 'writing') {
+    return [
+      countObjectKeys(safe.stats) + ' kana stats',
+      countObjectKeys(safe.times) + ' timing records',
+      countObjectKeys(safe.srs) + ' SRS entries'
+    ].join(' · ');
+  }
+  if (sectionName === 'readingTests') {
+    const count = Math.max(countArrayItems(safe.primary), countArrayItems(safe.altPrimary), countArrayItems(safe.backup), countArrayItems(safe.altBackup));
+    return count + ' reading test' + (count === 1 ? '' : 's');
+  }
+  if (sectionName === 'writingTests') {
+    const count = Math.max(countArrayItems(safe.primary), countArrayItems(safe.backup));
+    return count + ' writing test' + (count === 1 ? '' : 's');
+  }
+  if (sectionName === 'wordBank') {
+    const count = countArrayItems(safe.items);
+    return count + ' word bank item' + (count === 1 ? '' : 's');
+  }
+  return sectionHasMeaningfulData(sectionName, safe) ? 'Has data' : 'No data';
+}
+
+function prepareManualImport(obj) {
+  const imported = getImportMapAndSnapshot(obj);
+  const appliedImport = applyImportedTestResultsToSnapshot(imported.snapshot, obj, imported.exportedAt);
+  return {
+    snapshot: appliedImport.snapshot,
+    exportedAt: imported.exportedAt,
+    importedTests: appliedImport.counts
+  };
+}
+
+function previewLocalBackup(obj) {
+  const prepared = prepareManualImport(obj);
+  const local = buildLocalSnapshot();
+  const sections = Object.keys(SECTION_DEFS).map((name) => {
+    const current = local.sections?.[name] || { data: {}, updatedAt: 0 };
+    const incoming = prepared.snapshot.sections?.[name] || { data: {}, updatedAt: 0 };
+    const currentHasData = sectionHasMeaningfulData(name, current.data || {});
+    const incomingHasData = sectionHasMeaningfulData(name, incoming.data || {});
+    return {
+      name,
+      label: SECTION_LABELS[name] || name,
+      current: summarizeImportSection(name, current.data || {}),
+      incoming: summarizeImportSection(name, incoming.data || {}),
+      currentUpdatedAt: normalizeTimestamp(current.updatedAt),
+      incomingUpdatedAt: normalizeTimestamp(incoming.updatedAt),
+      action: incomingHasData ? 'Will replace from backup' : (currentHasData ? 'Will keep current data' : 'No data to import'),
+      willImport: !!incomingHasData
+    };
+  });
+  return {
+    exportedAt: prepared.exportedAt,
+    sections,
+    importedTests: prepared.importedTests,
+    summary: {
+      willImport: sections.filter((section) => section.willImport).length,
+      willKeep: sections.filter((section) => !section.willImport).length
+    }
+  };
 }
 
 async function importLocalBackup(obj) {
-  await authReady;
-  const { snapshot } = getImportMapAndSnapshot(obj);
-  const result = { updated: [], keptCloud: [], keptLocal: [], cloudSynced: false, usedCloud: false };
-  let remoteSnapshot = null;
-  if (CONFIG_READY && currentUser && db && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
-    try {
-      const snap = await getDoc(getDocRef(currentUser.uid));
-      remoteSnapshot = snap.exists() ? snap.data() : null;
-      result.usedCloud = true;
-      setCloudState(true);
-    } catch (error) {
-      console.warn('Could not compare import with cloud save.', error);
-      setCloudState(false, error?.message || 'Cloud unavailable during import');
-    }
-  }
+  await waitWithTimeout(setupFirebase(), 1400, 'cloud setup');
+  await waitWithTimeout(authReady, 1400, 'auth check');
 
+  const prepared = prepareManualImport(obj);
+  const snapshot = prepared.snapshot;
+  const result = {
+    updated: [],
+    keptCloud: [],
+    keptLocal: [],
+    cloudSynced: false,
+    usedCloud: false,
+    importedTests: prepared.importedTests
+  };
+
+  // Manual import should restore the file the user selected. Do not let newer
+  // local/cloud timestamps keep stale data over the imported backup. Empty
+  // imported sections are skipped so they do not wipe useful current data.
   Object.keys(SECTION_DEFS).forEach((name) => {
     const incoming = snapshot.sections?.[name];
     if (!incoming) return;
-    const cloud = remoteSnapshot?.sections?.[name] || null;
-    const current = snapshotSectionFixed(name);
-    const incomingTs = normalizeTimestamp(incoming.updatedAt);
-    const cloudTs = normalizeTimestamp(cloud?.updatedAt);
-    const currentTs = normalizeTimestamp(current.updatedAt);
     const incomingHasData = sectionHasMeaningfulData(name, incoming.data || {});
-    const cloudHasData = sectionHasMeaningfulData(name, cloud?.data || {});
-
-    if (cloud && cloudHasData && cloudTs > incomingTs) {
-      writeSectionToLocal(name, cloud.data || {}, cloudTs);
-      result.keptCloud.push(name);
-      return;
-    }
-    if (incomingHasData && incomingTs >= Math.max(cloudTs, currentTs)) {
-      writeSectionToLocal(name, incoming.data || {}, incomingTs || Date.now());
+    if (incomingHasData) {
+      writeSectionToLocal(name, incoming.data || {}, normalizeTimestamp(incoming.updatedAt) || Date.now());
       result.updated.push(name);
-      return;
+    } else {
+      result.keptLocal.push(name);
     }
-    if (cloud && cloudHasData && cloudTs >= currentTs) {
-      writeSectionToLocal(name, cloud.data || {}, cloudTs);
-      result.keptCloud.push(name);
-      return;
-    }
-    result.keptLocal.push(name);
   });
 
   beginLocalImport(2 * 60 * 1000);
@@ -902,6 +1218,12 @@ function describeImportResult(result) {
   if (result.updated?.length) lines.push('Updated from backup: ' + names(result.updated) + '.');
   if (result.keptCloud?.length) lines.push('Kept newer cloud data: ' + names(result.keptCloud) + '.');
   if (result.keptLocal?.length) lines.push('Kept newer local data: ' + names(result.keptLocal) + '.');
+  if (result.importedTests?.reading || result.importedTests?.writing) {
+    const parts = [];
+    if (result.importedTests.reading) parts.push(result.importedTests.reading + ' reading');
+    if (result.importedTests.writing) parts.push(result.importedTests.writing + ' writing');
+    lines.push('Imported test results: ' + parts.join(', ') + '.');
+  }
   lines.push(result.cloudSynced ? 'This is now the definitive cloud save.' : (currentUser ? 'Cloud was unavailable, so local data will sync when cloud access returns.' : 'You are using local save data. Log in to sync this to cloud.'));
   return lines.join('\n');
 }
@@ -930,6 +1252,8 @@ try {
   else startProfileAuthButtonGuard();
 } catch {}
 
+
+
 window.KanaCloudSync = {
   ready: authReady,
   beforePageLoad,
@@ -948,6 +1272,7 @@ window.KanaCloudSync = {
   getSyncStatus,
   createBackup,
   importLocalBackup,
+  previewLocalBackup,
   describeImportResult,
   debugLocalSnapshot: buildLocalSnapshot,
   resetAllData
